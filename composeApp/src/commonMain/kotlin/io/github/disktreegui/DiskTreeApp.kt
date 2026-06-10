@@ -4,6 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -22,7 +26,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import io.github.disktreegui.model.TreeNode
 import io.github.disktreegui.theme.DiskTreeTheme
@@ -61,19 +64,62 @@ fun DiskTreeApp(filePickerLauncher: FilePickerLauncher? = null, onAppLaunch: ((D
 
 @Composable
 private fun CompactLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, searchResults: List<SearchResultItem>, searching: Boolean, onOpenFile: () -> Unit) {
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f).fillMaxWidth().padding(16.dp)) {
-            if (state.activeTab == BottomTab.Files) FilesPane(state, visibleNodes, searchResults, searching)
-            else SettingsPane(state.themeMode) { state.themeMode = it }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                    )
+                )
+            )
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
+                if (state.activeTab == BottomTab.Files) {
+                    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        CompactHeroSection(state.loadedFileName, visibleNodes.size, searchResults.size, searching)
+                        FilesPane(state, visibleNodes, searchResults, searching, Modifier.weight(1f), showFileSummary = true)
+                    }
+                } else {
+                    Card(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                    ) {
+                        SettingsPane(state.themeMode) { state.themeMode = it }
+                    }
+                }
+            }
+            Spacer(Modifier.height(96.dp))
         }
-        HorizontalDivider()
-        Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
-            if (state.activeTab == BottomTab.Files) FilePane(state.loadedFileName, state.errorMessage, onOpenFile)
-            NavigationBar {
-                NavigationBarItem(state.activeTab == BottomTab.Files, { state.activeTab = BottomTab.Files }, { Icon(Icons.Filled.FolderOpen, null) }, label = { Text("文件") })
-                NavigationBarItem(state.activeTab == BottomTab.Settings, { state.activeTab = BottomTab.Settings }, { Icon(Icons.Filled.Settings, null) }, label = { Text("设置") })
+
+        if (state.activeTab == BottomTab.Files) {
+            Card(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 16.dp, end = 16.dp, bottom = 92.dp)
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+            ) {
+                FilePane(state.loadedFileName, state.errorMessage, onOpenFile)
             }
         }
+
+        FloatingBottomBar(
+            activeTab = state.activeTab,
+            onFilesClick = { state.activeTab = BottomTab.Files },
+            onSettingsClick = { state.activeTab = BottomTab.Settings },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        )
     }
 }
 
@@ -98,7 +144,7 @@ private fun WideLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, searc
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 DesktopHeroSection(state.loadedFileName, visibleNodes.size, searchResults.size, searching)
                 Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    FilesPane(state, visibleNodes, searchResults, searching, Modifier.weight(1f))
+                    FilesPane(state, visibleNodes, searchResults, searching, Modifier.weight(1f), showFileSummary = false)
                     DesktopQuickPanel(state.loadedFileName, state.errorMessage, onOpenFile, Modifier.widthIn(min = 340.dp, max = 380.dp).fillMaxHeight())
                 }
             }
@@ -116,7 +162,14 @@ private fun WideLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, searc
 }
 
 @Composable
-private fun FilesPane(state: DiskTreeState, visibleNodes: List<TreeNode>, searchResults: List<SearchResultItem>, searching: Boolean, modifier: Modifier = Modifier) {
+private fun FilesPane(
+    state: DiskTreeState,
+    visibleNodes: List<TreeNode>,
+    searchResults: List<SearchResultItem>,
+    searching: Boolean,
+    modifier: Modifier = Modifier,
+    showFileSummary: Boolean = true
+) {
     val count = if (searching) searchResults.size else visibleNodes.size
     Column(modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -128,8 +181,10 @@ private fun FilesPane(state: DiskTreeState, visibleNodes: List<TreeNode>, search
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Text(state.loadedFileName?.let { "当前文件：$it" } ?: "尚未打开 Tree.py 导出的文本文件", color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (showFileSummary) {
+            Spacer(Modifier.height(8.dp))
+            Text(state.loadedFileName?.let { "当前文件：$it" } ?: "尚未打开 Tree.py 导出的文本文件", color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
         if (state.roots.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
@@ -154,10 +209,20 @@ private fun FilesPane(state: DiskTreeState, visibleNodes: List<TreeNode>, search
                 state.roots.isEmpty() -> EmptyState("暂无数据", "先从右侧导入 Tree.py 导出的文本，然后我会在这里构建可展开的文件树。")
                 searching && searchResults.isEmpty() -> EmptyState("没有找到匹配项", "试试更短的关键词，或者按目录名、盘符、文件后缀来搜。")
                 searching -> LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(searchResults, key = { it.node.id }) { SearchRow(it) }
+                    items(searchResults, key = { it.node.id }) {
+                        SearchRow(it, selected = state.isSelected(it.node)) { state.revealNode(it.node) }
+                    }
                 }
                 else -> LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(visibleNodes, key = { it.id }) { TreeRow(it, state.isExpanded(it)) { state.toggle(it) } }
+                    items(visibleNodes, key = { it.id }) {
+                        TreeRow(
+                            node = it,
+                            expanded = state.isExpanded(it),
+                            selected = state.isSelected(it),
+                            onToggle = { state.toggle(it) },
+                            onSelect = { state.selectNode(it) }
+                        )
+                    }
                 }
             }
         }
@@ -192,7 +257,8 @@ private fun SettingsPane(themeMode: ThemeMode, onThemeChange: (ThemeMode) -> Uni
                 Modifier
                     .size(72.dp)
                     .clip(RoundedCornerShape(22.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .clickable { uriHandler.openUri(projectUrl) },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Filled.FolderOpen, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
@@ -200,7 +266,7 @@ private fun SettingsPane(themeMode: ThemeMode, onThemeChange: (ThemeMode) -> Uni
             Text("DiskTree GUI", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
             Text("版本 1.0.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("一个用于读取 Tree.py 导出文本的跨平台文件树浏览器。\nKotlin Multiplatform + Compose Multiplatform", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-            Text(projectUrl, color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline, modifier = Modifier.clickable { uriHandler.openUri(projectUrl) })
+            Text("点击上方图标访问项目主页", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -239,13 +305,28 @@ private fun flattenVisibleNodes(nodes: List<TreeNode>, state: DiskTreeState): Li
 }
 
 @Composable
-private fun SearchRow(item: SearchResultItem) {
+private fun SearchRow(item: SearchResultItem, selected: Boolean, onClick: () -> Unit) {
     val isDir = item.node.isDirectory || item.node.children.isNotEmpty()
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val backgroundColor = when {
+        selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+        hovered -> MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+    }
+    val borderColor = when {
+        selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+        hovered -> MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+        else -> Color.Transparent
+    }
     Column(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+            .hoverable(interactionSource)
+            .clickable(onClick = onClick)
+            .background(backgroundColor)
+            .border(1.dp, borderColor, RoundedCornerShape(18.dp))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -260,17 +341,42 @@ private fun SearchRow(item: SearchResultItem) {
 }
 
 @Composable
-private fun TreeRow(node: TreeNode, expanded: Boolean, onToggle: () -> Unit) {
+private fun TreeRow(node: TreeNode, expanded: Boolean, selected: Boolean, onToggle: () -> Unit, onSelect: () -> Unit) {
     val isDir = node.isDirectory || node.children.isNotEmpty()
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val backgroundColor = when {
+        selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+        hovered -> MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    }
+    val borderColor = when {
+        selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+        hovered -> MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
+        else -> Color.Transparent
+    }
     Row(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .clickable(enabled = node.children.isNotEmpty(), onClick = onToggle)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .hoverable(interactionSource)
+            .clickable {
+                onSelect()
+                if (node.children.isNotEmpty()) onToggle()
+            }
+            .background(backgroundColor)
+            .border(1.dp, borderColor, RoundedCornerShape(18.dp))
             .padding(start = (node.depth * 16).dp + 8.dp, top = 10.dp, bottom = 10.dp, end = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            Modifier
+                .width(3.dp)
+                .height(24.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+        )
+        Spacer(Modifier.width(8.dp))
         if (node.children.isNotEmpty()) Icon(if (expanded) Icons.Filled.ExpandMore else Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) else Spacer(Modifier.size(18.dp))
         Spacer(Modifier.width(4.dp))
         Icon(if (isDir) if (expanded) Icons.Filled.FolderOpen else Icons.Filled.Folder else Icons.Filled.Description, null, tint = if (isDir) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
@@ -410,5 +516,100 @@ private fun EmptyState(title: String, description: String) {
         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
         Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
+private fun CompactHeroSection(fileName: String?, visibleCount: Int, resultCount: Int, searching: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f))
+    ) {
+        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("DiskTree Mobile", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text(
+                fileName?.let { "当前文件：$it" } ?: "导入 Tree.py 文本后，就能在手机上更轻盈地浏览目录树。",
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.84f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                CompactMetricChip("节点", visibleCount.toString())
+                CompactMetricChip(if (searching) "结果" else "状态", if (searching) resultCount.toString() else "就绪")
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactMetricChip(label: String, value: String) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun FloatingBottomBar(activeTab: BottomTab, onFilesClick: () -> Unit, onSettingsClick: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.shadow(20.dp, RoundedCornerShape(28.dp), clip = false),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
+                        )
+                    )
+                )
+                .border(
+                    1.dp,
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.24f),
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)
+                        )
+                    ),
+                    RoundedCornerShape(28.dp)
+                )
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            FloatingBottomBarItem("文件", Icons.Filled.FolderOpen, activeTab == BottomTab.Files, onFilesClick, Modifier.weight(1f))
+            FloatingBottomBarItem("设置", Icons.Filled.Settings, activeTab == BottomTab.Settings, onSettingsClick, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun FloatingBottomBarItem(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val bg = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        modifier
+            .clip(RoundedCornerShape(22.dp))
+            .clickable(onClick = onClick)
+            .background(bg)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = fg, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(label, color = fg, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
     }
 }
