@@ -59,7 +59,7 @@ object TreeScanParser {
                 }
             }
 
-        return roots
+        return roots.sortedTree()
     }
 
     private fun computeDepth(line: String, markerIndex: Int): Int {
@@ -71,4 +71,14 @@ object TreeScanParser {
         val parentPath = stack.take(depth + 1).joinToString("/") { it.name }
         return "$parentPath/$name"
     }
+
+    private fun List<TreeNode>.sortedTree(): List<TreeNode> =
+        sortedWith(treeNodeComparator()).map { node ->
+            node.copy(children = node.children.sortedTree().toMutableList())
+        }
+
+    private fun treeNodeComparator(): Comparator<TreeNode> = compareBy<TreeNode>(
+        { !it.isDirectory },
+        { it.name.lowercase() }
+    )
 }

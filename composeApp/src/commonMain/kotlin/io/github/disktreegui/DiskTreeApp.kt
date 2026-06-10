@@ -1,21 +1,32 @@
 package io.github.disktreegui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -23,7 +34,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,7 +41,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.disktreegui.model.TreeNode
 import io.github.disktreegui.theme.DiskTreeTheme
@@ -49,53 +63,71 @@ fun DiskTreeApp(
     DiskTreeTheme(darkTheme = state.themeMode == ThemeMode.Dark) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text("树形浏览", style = MaterialTheme.typography.titleLarge)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = state.loadedFileName?.let { "当前文件：$it" } ?: "尚未打开 Tree.py 导出的文本文件",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(12.dp))
+                when (state.activeTab) {
+                    BottomTab.Files -> {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Text("树形浏览", style = MaterialTheme.typography.titleLarge)
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = state.loadedFileName?.let { "当前文件：$it" } ?: "尚未打开 Tree.py 导出的文本文件",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(12.dp))
 
-                    if (state.roots.isEmpty()) {
-                        Card(
-                            modifier = Modifier.fillMaxSize(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("请在下方“文件”页签中点击打开文件")
-                            }
-                        }
-                    } else {
-                        Card(
-                            modifier = Modifier.fillMaxSize(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize().padding(8.dp),
-                                contentPadding = PaddingValues(vertical = 4.dp)
-                            ) {
-                                items(visibleNodes, key = { it.id }) { node ->
-                                    TreeRow(
-                                        node = node,
-                                        expanded = state.isExpanded(node),
-                                        onToggle = { state.toggle(node) }
-                                    )
+                            if (state.roots.isEmpty()) {
+                                Card(
+                                    modifier = Modifier.fillMaxSize(),
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Text("请先在上方点击按钮打开 Tree.py 导出的文本文件")
+                                    }
+                                }
+                            } else {
+                                Card(
+                                    modifier = Modifier.fillMaxSize(),
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp),
+                                        contentPadding = PaddingValues(vertical = 4.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        items(visibleNodes, key = { it.id }) { node ->
+                                            TreeRow(
+                                                node = node,
+                                                expanded = state.isExpanded(node),
+                                                onToggle = { state.toggle(node) }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
+                    BottomTab.Settings -> {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            SettingsTabContent(
+                                themeMode = state.themeMode,
+                                onThemeChange = { state.themeMode = it }
+                            )
+                        }
+                    }
+                }
                 HorizontalDivider()
 
                 Column(
@@ -115,23 +147,30 @@ fun DiskTreeApp(
                             }
                         )
 
-                        BottomTab.Settings -> SettingsTabContent(
-                            themeMode = state.themeMode,
-                            onThemeChange = { state.themeMode = it }
-                        )
+                        BottomTab.Settings -> Spacer(Modifier.height(0.dp))
                     }
 
                     NavigationBar {
                         NavigationBarItem(
                             selected = state.activeTab == BottomTab.Files,
                             onClick = { state.activeTab = BottomTab.Files },
-                            icon = { Text("文件") },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Filled.FolderOpen,
+                                    contentDescription = "文件"
+                                )
+                            },
                             label = { Text("文件") }
                         )
                         NavigationBarItem(
                             selected = state.activeTab == BottomTab.Settings,
                             onClick = { state.activeTab = BottomTab.Settings },
-                            icon = { Text("设置") },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Filled.Settings,
+                                    contentDescription = "设置"
+                                )
+                            },
                             label = { Text("设置") }
                         )
                     }
@@ -149,19 +188,31 @@ private fun FileTabContent(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("文件", style = MaterialTheme.typography.titleMedium)
         Text(
             text = fileName?.let { "已打开：$it" } ?: "选择 Tree.py 导出的文本文件并加载到上方树视图",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
         Button(onClick = onOpenFile) {
-            Text("点击打开文件")
+            Icon(
+                imageVector = Icons.Filled.Description,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("选择文件")
         }
         if (errorMessage != null) {
-            Text(errorMessage, color = MaterialTheme.colorScheme.error)
+            Text(
+                errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -172,8 +223,8 @@ private fun SettingsTabContent(
     onThemeChange: (ThemeMode) -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("设置", style = MaterialTheme.typography.titleMedium)
         Text(
@@ -181,35 +232,93 @@ private fun SettingsTabContent(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        ThemeOptionRow(
-            label = "深色",
-            selected = themeMode == ThemeMode.Dark,
-            onClick = { onThemeChange(ThemeMode.Dark) }
-        )
-        ThemeOptionRow(
-            label = "浅色",
-            selected = themeMode == ThemeMode.Light,
-            onClick = { onThemeChange(ThemeMode.Light) }
+        ThemeSegmentedControl(
+            selectedMode = themeMode,
+            onThemeChange = onThemeChange
         )
     }
 }
 
 @Composable
-private fun ThemeOptionRow(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
+private fun ThemeSegmentedControl(
+    selectedMode: ThemeMode,
+    onThemeChange: (ThemeMode) -> Unit
 ) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 4.dp),
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(999.dp)
+            )
+            .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        RadioButton(selected = selected, onClick = onClick)
+        ThemeSegmentButton(
+            label = "深色",
+            icon = { Icon(Icons.Filled.DarkMode, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            selected = selectedMode == ThemeMode.Dark,
+            onClick = { onThemeChange(ThemeMode.Dark) },
+            modifier = Modifier.weight(1f)
+        )
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .height(24.dp)
+                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        )
+        ThemeSegmentButton(
+            label = "浅色",
+            icon = { Icon(Icons.Filled.LightMode, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            selected = selectedMode == ThemeMode.Light,
+            onClick = { onThemeChange(ThemeMode.Light) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun ThemeSegmentButton(
+    label: String,
+    icon: @Composable () -> Unit,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val containerColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        Color.Transparent
+    }
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .clickable(onClick = onClick)
+            .background(containerColor)
+            .defaultMinSize(minHeight = 44.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.runtime.CompositionLocalProvider(
+            androidx.compose.material3.LocalContentColor provides contentColor
+        ) {
+            icon()
+        }
         Spacer(Modifier.width(8.dp))
-        Text(label)
+        Text(
+            text = label,
+            color = contentColor,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+        )
     }
 }
 
@@ -233,18 +342,29 @@ private fun TreeRow(node: TreeNode, expanded: Boolean, onToggle: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = node.children.isNotEmpty(), onClick = onToggle)
-            .padding(start = (node.depth * 20).dp, top = 6.dp, bottom = 6.dp, end = 8.dp),
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(start = (node.depth * 16).dp + 10.dp, top = 10.dp, bottom = 10.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = when {
-                node.children.isEmpty() -> "•"
-                expanded -> "▼"
-                else -> "▶"
+        Icon(
+            imageVector = when {
+                node.children.isEmpty() -> Icons.Filled.Description
+                node.isDirectory -> Icons.Filled.FolderOpen
+                else -> Icons.Filled.Description
             },
-            color = MaterialTheme.colorScheme.primary
+            contentDescription = null,
+            tint = if (node.isDirectory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(18.dp)
         )
         Spacer(Modifier.width(8.dp))
-        Text(node.name, color = MaterialTheme.colorScheme.onSurface)
+        Text(
+            text = if (node.children.isNotEmpty()) {
+                (if (expanded) "▼ " else "▶ ") + node.name
+            } else {
+                node.name
+            },
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
