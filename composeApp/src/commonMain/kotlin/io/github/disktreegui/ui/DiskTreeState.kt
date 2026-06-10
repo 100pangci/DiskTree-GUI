@@ -34,6 +34,14 @@ private data class SearchIndexEntry(
 )
 
 class DiskTreeState {
+    companion object {
+        /**
+         * 避免把超大文本直接塞进 Preferences / SharedPreferences。
+         * Windows 上 Java Preferences 单条 value 长度有限，超过后会报 `value too long`。
+         */
+        private const val MAX_PERSISTED_CONTENT_LENGTH = 6_000
+    }
+
     var loadedFileName by mutableStateOf<String?>(null)
     var errorMessage by mutableStateOf<String?>(null)
     var activeTab by mutableStateOf(BottomTab.Files)
@@ -180,7 +188,8 @@ class DiskTreeState {
     }
 
     private fun persistLastLoadedFile(content: String, fileName: String?) {
-        AppSettings.putString(SettingsKeys.LAST_OPENED_FILE_CONTENT, content)
+        val persistedContent = if (content.length <= MAX_PERSISTED_CONTENT_LENGTH) content else ""
+        AppSettings.putString(SettingsKeys.LAST_OPENED_FILE_CONTENT, persistedContent)
         AppSettings.putString(SettingsKeys.LAST_OPENED_FILE_NAME, fileName.orEmpty())
     }
 }
