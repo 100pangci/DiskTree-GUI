@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,6 +57,7 @@ import io.github.disktreegui.model.TreeNode
 import io.github.disktreegui.theme.DiskTreeTheme
 import io.github.disktreegui.ui.BottomTab
 import io.github.disktreegui.ui.DiskTreeState
+import io.github.disktreegui.ui.SearchResultItem
 import io.github.disktreegui.ui.ThemeMode
 
 @Composable
@@ -63,6 +66,8 @@ fun DiskTreeApp(
 ) {
     val state = remember { DiskTreeState() }
     val visibleNodes by rememberUpdatedState(newValue = flattenVisibleNodes(state.roots, state))
+    val searching = state.searchQuery.isNotBlank()
+    val searchResults by rememberUpdatedState(newValue = state.searchResults)
 
     DiskTreeTheme(darkTheme = state.themeMode == ThemeMode.Dark) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -100,6 +105,30 @@ fun DiskTreeApp(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (state.roots.isNotEmpty()) {
+                                Spacer(Modifier.height(12.dp))
+                                OutlinedTextField(
+                                    value = state.searchQuery,
+                                    onValueChange = state::updateSearchQuery,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    leadingIcon = {
+                                        Icon(Icons.Filled.Search, contentDescription = null)
+                                    },
+                                    label = { Text("搜索文件或路径") },
+                                    placeholder = { Text("输入关键字后秒级筛选") }
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = if (searching) {
+                                        "搜索到 ${searchResults.size} 条结果"
+                                    } else {
+                                        "当前共 ${visibleNodes.size} 个可见节点"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             Spacer(Modifier.height(12.dp))
 
                             if (state.roots.isEmpty()) {
@@ -139,17 +168,37 @@ fun DiskTreeApp(
                                     shape = RoundedCornerShape(20.dp),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                                 ) {
-                                    LazyColumn(
-                                        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp),
-                                        contentPadding = PaddingValues(vertical = 4.dp),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        items(visibleNodes, key = { it.id }) { node ->
-                                            TreeRow(
-                                                node = node,
-                                                expanded = state.isExpanded(node),
-                                                onToggle = { state.toggle(node) }
+                                    if (searching && searchResults.isEmpty()) {
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = "没有找到匹配项",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
+                                        }
+                                    } else if (searching) {
+                                        LazyColumn(
+                                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp),
+                                            contentPadding = PaddingValues(vertical = 4.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            items(searchResults, key = { it.node.id }) { item ->
+                                                SearchResultRow(item)
+                                            }
+                                        }
+                                    } else {
+                                        LazyColumn(
+                                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp),
+                                            contentPadding = PaddingValues(vertical = 4.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            items(visibleNodes, key = { it.id }) { node ->
+                                                TreeRow(
+                                                    node = node,
+                                                    expanded = state.isExpanded(node),
+                                                    onToggle = { state.toggle(node) }
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -400,6 +449,54 @@ private fun flattenVisibleNodes(nodes: List<TreeNode>, state: DiskTreeState): Li
 
     nodes.forEach(::visit)
     return result
+}
+
+@Composable
+private fun SearchResultRow(item: SearchResultItem) {
+    val node = item.node
+    val isDir = node.isDirectory || node.children.isNotEmpty()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = if (isDir) Icons.Filled.Folder else Icons.Filled.Description,
+                contentDescription = null,
+                tint = if (isDir) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = node.name,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
+        }
+
+        if (item.parentPath.isNotBlank()) {
+            Text(
+                text = item.parentPath,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
+
+        Text(
+            text = item.fullPath,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (item.isDirectMatch) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+    }
 }
 
 @Composable

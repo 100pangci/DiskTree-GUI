@@ -3,7 +3,12 @@ name: Build Kotlin Multiplatform App
 on:
   push:
     branches: [ "main", "master" ]
+    tags:
+      - "v*"
   pull_request:
+
+permissions:
+  contents: write
 
 jobs:
   build-android:
@@ -143,3 +148,28 @@ jobs:
         with:
           name: releases-windows-portable
           path: Releases/
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - build-android
+      - build-desktop-linux
+      - build-desktop-macos
+      - build-desktop-windows
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/releases-android/**/*
+            artifacts/releases-linux/**/*
+            artifacts/releases-macos/**/*
+            artifacts/releases-windows-portable/**/*
