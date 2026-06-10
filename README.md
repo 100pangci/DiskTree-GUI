@@ -60,7 +60,7 @@ src/Tree.py          # 原始导出脚本
 - `macos-latest`：构建 macOS Desktop 发行包
 - `windows-latest`：构建 Windows Desktop 发行包
 
-手动触发（`workflow_dispatch`）时，`version` 输入现在可以留空；如果不填写，默认使用 `v0.0.1` 作为版本号。
+手动触发（`workflow_dispatch`）时，`version` 输入现在可以留空；如果不填写，默认使用 `v1.0.0` 作为版本号。
 
 另外，手动触发只会执行各平台构建并上传 **Artifacts**，不会创建 GitHub Release，也不会向 **Releases** 页面上传文件。只有 `v*` tag push 时才会创建正式 Release。
 
