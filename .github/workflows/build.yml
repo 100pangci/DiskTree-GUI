@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "发布版本号（例如 v1.0.1）；留空则使用手动触发时的分支名"
-        required: false
+        description: "发布版本号（例如 v1.0.1）"
+        required: true
         type: string
 
 permissions:
