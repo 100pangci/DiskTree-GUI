@@ -29,9 +29,8 @@ data class SearchResultItem(
 private data class SearchIndexEntry(
     val node: TreeNode,
     val normalizedName: String,
-    val normalizedPath: String,
-    val fullPath: String,
-    val parentPath: String
+    val parent: SearchIndexEntry?,
+    var cachedFullPath: String? = null
 )
 
 class DiskTreeState {
@@ -99,13 +98,15 @@ class DiskTreeState {
 
         val matches = searchIndex.asSequence()
             .filter { entry ->
-                entry.normalizedName.contains(normalizedQuery) || entry.normalizedPath.contains(normalizedQuery)
+                entry.normalizedName.contains(normalizedQuery) || buildFullPath(entry).lowercase().contains(normalizedQuery)
             }
             .map { entry ->
+                val fullPath = buildFullPath(entry)
+                val parentPath = buildParentPath(entry)
                 SearchResultItem(
                     node = entry.node,
-                    fullPath = entry.fullPath,
-                    parentPath = entry.parentPath,
+                    fullPath = fullPath,
+                    parentPath = parentPath,
                     isDirectMatch = entry.normalizedName.contains(normalizedQuery)
                 )
             }
@@ -125,27 +126,37 @@ class DiskTreeState {
     private fun rebuildSearchIndex(nodes: List<TreeNode>) {
         searchIndex.clear()
 
-        fun visit(node: TreeNode, parentSegments: List<String>) {
-            val cleanName = node.name.removeSuffix("/")
-            val currentSegments = parentSegments + cleanName
-            val fullPath = currentSegments.joinToString("/")
-            val parentPath = parentSegments.joinToString("/")
-
-            searchIndex += SearchIndexEntry(
+        fun visit(node: TreeNode, parent: SearchIndexEntry?) {
+            val entry = SearchIndexEntry(
                 node = node,
-                normalizedName = cleanName.lowercase(),
-                normalizedPath = fullPath.lowercase(),
-                fullPath = fullPath,
-                parentPath = parentPath
+                normalizedName = node.name.removeSuffix("/").lowercase(),
+                parent = parent
             )
+            searchIndex += entry
 
             node.children.forEach { child ->
-                visit(child, currentSegments)
+                visit(child, entry)
             }
         }
 
         nodes.forEach { root ->
-            visit(root, emptyList())
+            visit(root, null)
         }
+    }
+
+    private fun buildFullPath(entry: SearchIndexEntry): String {
+        entry.cachedFullPath?.let { return it }
+
+        val fullPath = entry.parent?.let { parent ->
+            buildFullPath(parent) + "/" + entry.node.name.removeSuffix("/")
+        } ?: entry.node.name.removeSuffix("/")
+
+        entry.cachedFullPath = fullPath
+        return fullPath
+    }
+
+    private fun buildParentPath(entry: SearchIndexEntry): String {
+        val parent = entry.parent ?: return ""
+        return buildFullPath(parent)
     }
 }
