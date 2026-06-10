@@ -18,8 +18,6 @@ fun main() = application {
     ) {
         DiskTreeApp(
             onAppLaunch = { state ->
-                state.restoreLastLoadedFile()
-
                 if (state.roots.isEmpty()) {
                     val lastOpenedFilePath = AppSettings.getString(SettingsKeys.LAST_OPENED_FILE_PATH, "")
                     if (lastOpenedFilePath.isNotBlank()) {

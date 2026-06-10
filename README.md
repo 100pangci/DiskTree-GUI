@@ -60,6 +60,8 @@ src/Tree.py          # 原始导出脚本
 - `macos-latest`：构建 macOS Desktop 发行包
 - `windows-latest`：构建 Windows Desktop 发行包
 
+手动触发（`workflow_dispatch`）时，`version` 输入现在可以留空；如果不填写，默认使用 `v0.0.1` 作为发布版本号。
+
 说明：当前仓库**不依赖本地预生成的 Gradle Wrapper**，CI 通过 `gradle/actions/setup-gradle` 安装并调用指定 Gradle 版本来完成构建。
 
 如果你在 GitHub Actions 日志里看到还是 **Gradle 8.1**，而不是这里配置的 **8.10**，通常说明：

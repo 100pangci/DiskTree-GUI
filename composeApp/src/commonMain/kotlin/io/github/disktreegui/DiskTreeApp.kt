@@ -45,7 +45,7 @@ fun DiskTreeApp(filePickerLauncher: FilePickerLauncher? = null, onAppLaunch: ((D
     DiskTreeTheme(darkTheme = state.themeMode == ThemeMode.Dark) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
-                if (maxWidth >= 1100.dp) {
+                if (maxWidth >= 1400.dp) {
                     WideLayout(state, visibleNodes, searchResults, searching, openFile)
                 } else {
                     CompactLayout(state, visibleNodes, searchResults, searching, openFile)
