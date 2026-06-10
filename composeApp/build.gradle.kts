@@ -115,6 +115,14 @@ android {
 compose.desktop {
     application {
         mainClass = "io.github.disktreegui.MainKt"
+        buildTypes.release.proguard {
+            version.set("7.4.2")
+            isEnabled.set(true)
+            configurationFiles.from(project.file("proguard-rules.pro"))
+            optimize.set(true)
+            obfuscate.set(true)
+            joinOutputJars.set(true)
+        }
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

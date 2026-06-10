@@ -81,6 +81,7 @@ private fun CompactLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, se
                 if (state.activeTab == BottomTab.Files) {
                     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         CompactHeroSection(state.loadedFileName, visibleNodes.size, searchResults.size, searching)
+                        CompactFilePanel(state.loadedFileName, state.errorMessage, onOpenFile)
                         FilesPane(state, visibleNodes, searchResults, searching, Modifier.weight(1f), showFileSummary = true)
                     }
                 } else {
@@ -97,20 +98,6 @@ private fun CompactLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, se
             Spacer(Modifier.height(96.dp))
         }
 
-        if (state.activeTab == BottomTab.Files) {
-            Card(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(start = 16.dp, end = 16.dp, bottom = 92.dp)
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-            ) {
-                FilePane(state.loadedFileName, state.errorMessage, onOpenFile)
-            }
-        }
-
         FloatingBottomBar(
             activeTab = state.activeTab,
             onFilesClick = { state.activeTab = BottomTab.Files },
@@ -120,6 +107,18 @@ private fun CompactLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, se
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         )
+    }
+}
+
+@Composable
+private fun CompactFilePanel(fileName: String?, errorMessage: String?, onOpenFile: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+    ) {
+        FilePane(fileName, errorMessage, onOpenFile)
     }
 }
 
