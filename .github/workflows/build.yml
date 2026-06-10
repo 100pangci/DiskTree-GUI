@@ -36,9 +36,10 @@ jobs:
           set -euo pipefail
           rm -rf .tree-build
           git clone --depth 1 https://github.com/100pangci/MyTools.git .tree-build/MyTools
-          python -m pip install --upgrade pip pyinstaller
+          python -m pip install --upgrade pip pyinstaller psutil
           python -m PyInstaller --clean --noconfirm --onefile --name Tree \
             ".tree-build/MyTools/src/Python/4.扫描文件树/Tree.py" \
+            --hidden-import psutil \
             --distpath .tree-build/dist \
             --workpath .tree-build/work \
             --specpath .tree-build/spec
@@ -66,9 +67,10 @@ jobs:
           set -euo pipefail
           rm -rf .tree-build
           git clone --depth 1 https://github.com/100pangci/MyTools.git .tree-build/MyTools
-          python -m pip install --upgrade pip pyinstaller
+          python -m pip install --upgrade pip pyinstaller psutil
           python -m PyInstaller --clean --noconfirm --onefile --name Tree \
             ".tree-build/MyTools/src/Python/4.扫描文件树/Tree.py" \
+            --hidden-import psutil \
             --distpath .tree-build/dist \
             --workpath .tree-build/work \
             --specpath .tree-build/spec
@@ -95,8 +97,8 @@ jobs:
         run: |
           if (Test-Path .tree-build) { Remove-Item .tree-build -Recurse -Force }
           git clone --depth 1 https://github.com/100pangci/MyTools.git .tree-build/MyTools
-          python -m pip install --upgrade pip pyinstaller
-          python -m PyInstaller --clean --noconfirm --onefile --name Tree ".tree-build/MyTools/src/Python/4.扫描文件树/Tree.py" --distpath .tree-build/dist --workpath .tree-build/work --specpath .tree-build/spec
+          python -m pip install --upgrade pip pyinstaller psutil
+          python -m PyInstaller --clean --noconfirm --onefile --name Tree ".tree-build/MyTools/src/Python/4.扫描文件树/Tree.py" --hidden-import psutil --distpath .tree-build/dist --workpath .tree-build/work --specpath .tree-build/spec
 
       - name: Upload Tree artifact for Windows
         uses: actions/upload-artifact@v4
