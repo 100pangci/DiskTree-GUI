@@ -38,7 +38,8 @@ object TreeScanParser {
                 val depth = computeDepth(line, markerIndex) + 1
                 val rawName = line.substring(markerIndex + 4).trim()
                 val name = normalizeNodeName(rawName)
-                val isDir = rawName.endsWith("/") || rawName.endsWith("\\") || !rawName.contains(".")
+                val hasExplicitDirectorySuffix = rawName.endsWith("/") || rawName.endsWith("\\")
+                val isDir = hasExplicitDirectorySuffix || !rawName.contains(".")
                 val node = TreeNode(
                     id = buildId(stack, name, depth),
                     name = name,

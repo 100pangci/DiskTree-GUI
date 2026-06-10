@@ -93,7 +93,7 @@ def generate_tree(directory, prefix='', level=0):
             for i, entry in enumerate(entries):
                 is_last = (i == count - 1)
                 pointer = '└── ' if is_last else '├── '
-                display_name = entry.name
+                display_name = entry.name + '/' if entry.is_dir(follow_symlinks=False) else entry.name
                 print(f"{prefix}{pointer}{display_name}")
                 
                 # entry.is_dir() 利用了缓存的元数据，无需再次请求操作系统
