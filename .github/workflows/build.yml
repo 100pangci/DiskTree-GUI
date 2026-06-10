@@ -19,6 +19,91 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  build-tree-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build Tree for Linux
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .tree-build
+          git clone --depth 1 https://github.com/100pangci/MyTools.git .tree-build/MyTools
+          python -m pip install --upgrade pip pyinstaller
+          python -m PyInstaller --clean --noconfirm --onefile --name Tree \
+            ".tree-build/MyTools/src/Python/4.扫描文件树/Tree.py" \
+            --distpath .tree-build/dist \
+            --workpath .tree-build/work \
+            --specpath .tree-build/spec
+
+      - name: Upload Tree artifact for Linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: releases-tree-linux-${{ env.DISKTREE_VERSION }}
+          path: .tree-build/dist/Tree
+
+  build-tree-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build Tree for macOS
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .tree-build
+          git clone --depth 1 https://github.com/100pangci/MyTools.git .tree-build/MyTools
+          python -m pip install --upgrade pip pyinstaller
+          python -m PyInstaller --clean --noconfirm --onefile --name Tree \
+            ".tree-build/MyTools/src/Python/4.扫描文件树/Tree.py" \
+            --distpath .tree-build/dist \
+            --workpath .tree-build/work \
+            --specpath .tree-build/spec
+
+      - name: Upload Tree artifact for macOS
+        uses: actions/upload-artifact@v4
+        with:
+          name: releases-tree-macos-${{ env.DISKTREE_VERSION }}
+          path: .tree-build/dist/Tree
+
+  build-tree-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build Tree for Windows
+        shell: pwsh
+        run: |
+          if (Test-Path .tree-build) { Remove-Item .tree-build -Recurse -Force }
+          git clone --depth 1 https://github.com/100pangci/MyTools.git .tree-build/MyTools
+          python -m pip install --upgrade pip pyinstaller
+          python -m PyInstaller --clean --noconfirm --onefile --name Tree ".tree-build/MyTools/src/Python/4.扫描文件树/Tree.py" --distpath .tree-build/dist --workpath .tree-build/work --specpath .tree-build/spec
+
+      - name: Upload Tree artifact for Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: releases-tree-windows-${{ env.DISKTREE_VERSION }}
+          path: .tree-build/dist/Tree.exe
+
   build-android:
     runs-on: ubuntu-latest
     env:
@@ -35,11 +120,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -85,11 +165,6 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -118,11 +193,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -153,11 +223,6 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -178,6 +243,9 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     needs:
+      - build-tree-linux
+      - build-tree-macos
+      - build-tree-windows
       - build-android
       - build-desktop-linux
       - build-desktop-macos
@@ -215,13 +283,13 @@ jobs:
           android_release_apk="$(find_first_match "artifacts/releases-android-${{ env.DISKTREE_VERSION }}" -name '*release*.apk')"
           android_bundle="$(find_first_match "artifacts/releases-android-${{ env.DISKTREE_VERSION }}" -name '*.aab')"
           linux_deb="$(find_first_match "artifacts/releases-linux-${{ env.DISKTREE_VERSION }}" -name '*.deb')"
-          linux_tree_binary="$(find_first_match "artifacts/releases-linux-${{ env.DISKTREE_VERSION }}" -name 'Tree')"
+          linux_tree_binary="$(find_first_match "artifacts/releases-tree-linux-${{ env.DISKTREE_VERSION }}" -name 'Tree')"
           macos_dmg="$(find_first_match "artifacts/releases-macos-${{ env.DISKTREE_VERSION }}" -name '*.dmg')"
-          macos_tree_binary="$(find_first_match "artifacts/releases-macos-${{ env.DISKTREE_VERSION }}" -name 'Tree')"
+          macos_tree_binary="$(find_first_match "artifacts/releases-tree-macos-${{ env.DISKTREE_VERSION }}" -name 'Tree')"
           windows_msi="$(find_first_match "artifacts/releases-windows-portable-${{ env.DISKTREE_VERSION }}" -name '*.msi')"
           windows_exe="$(find_first_match "artifacts/releases-windows-portable-${{ env.DISKTREE_VERSION }}" -name '*.exe')"
           windows_zip="$(find_first_match "artifacts/releases-windows-portable-${{ env.DISKTREE_VERSION }}" -name '*.zip')"
-          windows_tree_binary="$(find_first_match "artifacts/releases-windows-portable-${{ env.DISKTREE_VERSION }}" -name 'Tree.exe')"
+          windows_tree_binary="$(find_first_match "artifacts/releases-tree-windows-${{ env.DISKTREE_VERSION }}" -name 'Tree.exe')"
 
           version_no_prefix="${DISKTREE_VERSION#v}"
 
