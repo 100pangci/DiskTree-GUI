@@ -127,6 +127,7 @@ fun DiskTreeApp(
                             )
                         }
                     }
+
                 }
                 HorizontalDivider()
 
@@ -154,23 +155,13 @@ fun DiskTreeApp(
                         NavigationBarItem(
                             selected = state.activeTab == BottomTab.Files,
                             onClick = { state.activeTab = BottomTab.Files },
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Filled.FolderOpen,
-                                    contentDescription = "文件"
-                                )
-                            },
+                            icon = { Icon(Icons.Filled.FolderOpen, contentDescription = "文件") },
                             label = { Text("文件") }
                         )
                         NavigationBarItem(
                             selected = state.activeTab == BottomTab.Settings,
                             onClick = { state.activeTab = BottomTab.Settings },
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Filled.Settings,
-                                    contentDescription = "设置"
-                                )
-                            },
+                            icon = { Icon(Icons.Filled.Settings, contentDescription = "设置") },
                             label = { Text("设置") }
                         )
                     }
@@ -236,6 +227,38 @@ private fun SettingsTabContent(
             selectedMode = themeMode,
             onThemeChange = onThemeChange
         )
+
+        Spacer(Modifier.height(8.dp))
+        HorizontalDivider()
+        Spacer(Modifier.height(8.dp))
+
+        // 关于区块
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Filled.FolderOpen,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text("DiskTree GUI", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("版本 1.0.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "一个用于读取 Tree.py 导出文本的跨平台文件树浏览器。\nKotlin Multiplatform + Compose Multiplatform",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                "https://github.com/100pangci/DiskTree-GUI",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 

@@ -6,6 +6,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.disktreegui.model.TreeNode
 import io.github.disktreegui.parser.TreeScanParser
+import io.github.disktreegui.settings.AppSettings
+import io.github.disktreegui.settings.SettingsKeys
 
 enum class BottomTab {
     Files,
@@ -21,7 +23,13 @@ class DiskTreeState {
     var loadedFileName by mutableStateOf<String?>(null)
     var errorMessage by mutableStateOf<String?>(null)
     var activeTab by mutableStateOf(BottomTab.Files)
-    var themeMode by mutableStateOf(ThemeMode.Dark)
+    var themeMode by mutableStateOf(
+        if (AppSettings.getString(SettingsKeys.THEME_MODE, "Dark") == "Light") ThemeMode.Light else ThemeMode.Dark
+    )
+        set(value) {
+            field = value
+            AppSettings.putString(SettingsKeys.THEME_MODE, value.name)
+        }
     val roots = mutableStateListOf<TreeNode>()
     val expandedIds = mutableStateListOf<String>()
 
