@@ -81,8 +81,13 @@ android {
         }
 
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.findByName("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
@@ -95,6 +100,7 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "DiskTree GUI"
             packageVersion = "1.0.0"
+            modules("java.base", "java.desktop", "java.logging", "java.sql")
         }
     }
 }

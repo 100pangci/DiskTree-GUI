@@ -1,0 +1,3 @@
+-keep class androidx.compose.** { *; }
+-keep class org.jetbrains.compose.** { *; }
+-dontwarn kotlin.**
