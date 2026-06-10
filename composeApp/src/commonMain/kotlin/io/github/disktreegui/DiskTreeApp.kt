@@ -43,6 +43,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -62,12 +63,17 @@ import io.github.disktreegui.ui.ThemeMode
 
 @Composable
 fun DiskTreeApp(
-    filePickerLauncher: FilePickerLauncher? = null
+    filePickerLauncher: FilePickerLauncher? = null,
+    onAppLaunch: ((DiskTreeState) -> Unit)? = null
 ) {
     val state = remember { DiskTreeState() }
     val visibleNodes by rememberUpdatedState(newValue = flattenVisibleNodes(state.roots, state))
     val searching = state.searchQuery.isNotBlank()
     val searchResults by rememberUpdatedState(newValue = state.searchResults)
+
+    LaunchedEffect(state) {
+        onAppLaunch?.invoke(state)
+    }
 
     DiskTreeTheme(darkTheme = state.themeMode == ThemeMode.Dark) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {

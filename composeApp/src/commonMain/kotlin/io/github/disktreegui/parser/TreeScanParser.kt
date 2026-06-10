@@ -45,7 +45,7 @@ object TreeScanParser {
                     isDirectory = isDir
                 )
 
-                while (stack.size > depth + 1) {
+                while (stack.size > depth) {
                     stack.removeAt(stack.lastIndex)
                 }
 
