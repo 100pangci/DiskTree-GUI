@@ -23,9 +23,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -71,7 +75,25 @@ fun DiskTreeApp(
                                 .fillMaxWidth()
                                 .padding(16.dp)
                         ) {
-                            Text("树形浏览", style = MaterialTheme.typography.titleLarge)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("树形浏览", style = MaterialTheme.typography.titleLarge)
+                                if (state.roots.isNotEmpty()) {
+                                    Spacer(Modifier.width(8.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(999.dp))
+                                            .background(MaterialTheme.colorScheme.primaryContainer)
+                                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "${visibleNodes.size}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
                             Spacer(Modifier.height(8.dp))
                             Text(
                                 text = state.loadedFileName?.let { "当前文件：$it" } ?: "尚未打开 Tree.py 导出的文本文件",
@@ -87,7 +109,28 @@ fun DiskTreeApp(
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                                 ) {
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Text("请先在上方点击按钮打开 Tree.py 导出的文本文件")
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.UploadFile,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(56.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                            )
+                                            Text(
+                                                "暂无数据",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                            )
+                                            Text(
+                                                "在下方点击「选择文件」\n打开 Tree.py 导出的文本",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
                                     }
                                 }
                             } else {
@@ -191,12 +234,12 @@ private fun FileTabContent(
         )
         Button(onClick = onOpenFile) {
             Icon(
-                imageVector = Icons.Filled.Description,
+                imageVector = Icons.Filled.UploadFile,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
-            Text("选择文件")
+            Text(if (fileName != null) "更换文件" else "选择文件")
         }
         if (errorMessage != null) {
             Text(
@@ -361,33 +404,45 @@ private fun flattenVisibleNodes(nodes: List<TreeNode>, state: DiskTreeState): Li
 
 @Composable
 private fun TreeRow(node: TreeNode, expanded: Boolean, onToggle: () -> Unit) {
+    val isDir = node.isDirectory || node.children.isNotEmpty()
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable(enabled = node.children.isNotEmpty(), onClick = onToggle)
-            .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(start = (node.depth * 16).dp + 10.dp, top = 10.dp, bottom = 10.dp, end = 12.dp),
+            .padding(start = (node.depth * 16).dp + 4.dp, top = 8.dp, bottom = 8.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // 展开/折叠箭头占位（文件不显示箭头，但需要占位对齐）
+        if (node.children.isNotEmpty()) {
+            Icon(
+                imageVector = if (expanded) Icons.Filled.ExpandMore else Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+        } else {
+            Spacer(Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(4.dp))
         Icon(
-            imageVector = when {
-                node.children.isEmpty() -> Icons.Filled.Description
-                node.isDirectory -> Icons.Filled.FolderOpen
-                else -> Icons.Filled.Description
+            imageVector = if (isDir) {
+                if (expanded) Icons.Filled.FolderOpen else Icons.Filled.Folder
+            } else {
+                Icons.Filled.Description
             },
             contentDescription = null,
-            tint = if (node.isDirectory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+            tint = if (isDir) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(18.dp)
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            text = if (node.children.isNotEmpty()) {
-                (if (expanded) "▼ " else "▶ ") + node.name
-            } else {
-                node.name
-            },
-            color = MaterialTheme.colorScheme.onSurface
+            text = node.name,
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (isDir) FontWeight.Medium else FontWeight.Normal,
+            maxLines = 1
         )
     }
 }

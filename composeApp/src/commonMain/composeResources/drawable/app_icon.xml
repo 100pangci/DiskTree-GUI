@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <!-- Blue rounded background -->
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M0,80 Q0,0 80,0 L432,0 Q512,0 512,80 L512,432 Q512,512 432,512 L80,512 Q0,512 0,432 Z" />
+    <!-- Folder shape (white) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M80,210 Q80,190 100,190 L190,190 L212,168 L412,168 Q432,168 432,188 L432,342 Q432,362 412,362 L100,362 Q80,362 80,342 Z" />
+    <!-- Tree vertical line -->
+    <path
+        android:strokeColor="#1565C0"
+        android:strokeWidth="16"
+        android:strokeLineCap="round"
+        android:pathData="M152,240 L152,320" />
+    <!-- Tree branch 1 -->
+    <path
+        android:strokeColor="#1565C0"
+        android:strokeWidth="16"
+        android:strokeLineCap="round"
+        android:pathData="M152,240 L232,240" />
+    <!-- Tree branch 2 -->
+    <path
+        android:strokeColor="#1565C0"
+        android:strokeWidth="16"
+        android:strokeLineCap="round"
+        android:pathData="M152,280 L232,280" />
+    <!-- Tree branch 3 -->
+    <path
+        android:strokeColor="#1565C0"
+        android:strokeWidth="16"
+        android:strokeLineCap="round"
+        android:pathData="M152,320 L232,320" />
+    <!-- Node dots -->
+    <path android:fillColor="#1565C0" android:pathData="M244,240 m-12,0 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0" />
+    <path android:fillColor="#1565C0" android:pathData="M244,280 m-12,0 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0" />
+    <path android:fillColor="#1565C0" android:pathData="M244,320 m-12,0 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0" />
+    <path android:fillColor="#1565C0" android:pathData="M152,240 m-12,0 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0" />
+</vector>

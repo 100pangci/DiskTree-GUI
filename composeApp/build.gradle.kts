@@ -102,6 +102,9 @@ compose.desktop {
             packageName = "DiskTree GUI"
             packageVersion = "1.0.0"
             modules("java.base", "java.desktop", "java.logging", "java.sql")
+            linux { iconFile.set(project.file("src/desktopMain/resources/app_icon.png")) }
+            windows { iconFile.set(project.file("src/desktopMain/resources/app_icon.png")) }
+            macOS { iconFile.set(project.file("src/desktopMain/resources/app_icon.png")) }
         }
     }
 }
