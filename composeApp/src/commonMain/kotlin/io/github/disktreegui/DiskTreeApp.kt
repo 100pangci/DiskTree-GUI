@@ -1,5 +1,6 @@
 package io.github.disktreegui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,7 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -75,27 +79,36 @@ private fun CompactLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, se
 
 @Composable
 private fun WideLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, searchResults: List<SearchResultItem>, searching: Boolean, onOpenFile: () -> Unit) {
-    Row(Modifier.fillMaxSize()) {
-        NavigationRail {
-            NavigationRailItem(state.activeTab == BottomTab.Files, { state.activeTab = BottomTab.Files }, { Icon(Icons.Filled.FolderOpen, null) }, label = { Text("文件") })
-            NavigationRailItem(state.activeTab == BottomTab.Settings, { state.activeTab = BottomTab.Settings }, { Icon(Icons.Filled.Settings, null) }, label = { Text("设置") })
-        }
-        VerticalDivider()
+    Row(
+        Modifier
+            .fillMaxSize()
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+                    )
+                )
+            )
+            .padding(24.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        DesktopSidebar(state, Modifier.width(104.dp).fillMaxHeight())
         if (state.activeTab == BottomTab.Files) {
-            Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                FilesPane(state, visibleNodes, searchResults, searching, Modifier.weight(1f))
-                Card(
-                    modifier = Modifier.widthIn(min = 320.dp, max = 360.dp).fillMaxHeight(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) { FilePane(state.loadedFileName, state.errorMessage, onOpenFile) }
+            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                DesktopHeroSection(state.loadedFileName, visibleNodes.size, searchResults.size, searching)
+                Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    FilesPane(state, visibleNodes, searchResults, searching, Modifier.weight(1f))
+                    DesktopQuickPanel(state.loadedFileName, state.errorMessage, onOpenFile, Modifier.widthIn(min = 340.dp, max = 380.dp).fillMaxHeight())
+                }
             }
         } else {
-            Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.TopCenter) {
+            Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
                 Card(
-                    modifier = Modifier.widthIn(max = 900.dp).fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    modifier = Modifier.fillMaxWidth().widthIn(max = 960.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
                 ) { SettingsPane(state.themeMode) { state.themeMode = it } }
             }
         }
@@ -107,16 +120,16 @@ private fun FilesPane(state: DiskTreeState, visibleNodes: List<TreeNode>, search
     val count = if (searching) searchResults.size else visibleNodes.size
     Column(modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("树形浏览", style = MaterialTheme.typography.titleLarge)
+            Text("树形浏览", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
             if (state.roots.isNotEmpty()) {
                 Spacer(Modifier.width(8.dp))
-                Box(Modifier.clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.primaryContainer).padding(horizontal = 8.dp, vertical = 2.dp)) {
+                Box(Modifier.clip(RoundedCornerShape(999.dp)).background(MaterialTheme.colorScheme.primaryContainer).padding(horizontal = 10.dp, vertical = 4.dp)) {
                     Text("$count", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
         Spacer(Modifier.height(8.dp))
-        Text(state.loadedFileName?.let { "当前文件：$it" } ?: "尚未打开 Tree.py 导出的文本文件", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(state.loadedFileName?.let { "当前文件：$it" } ?: "尚未打开 Tree.py 导出的文本文件", color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         if (state.roots.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
@@ -126,14 +139,20 @@ private fun FilesPane(state: DiskTreeState, visibleNodes: List<TreeNode>, search
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Filled.Search, null) },
                 label = { Text("搜索文件或路径") },
-                placeholder = { Text("输入停止 250ms 后再搜索") }
+                placeholder = { Text("输入停止 250ms 后再搜索") },
+                shape = RoundedCornerShape(18.dp)
             )
         }
         Spacer(Modifier.height(12.dp))
-        Card(Modifier.fillMaxSize(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Card(
+            Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+        ) {
             when {
-                state.roots.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("暂无数据") }
-                searching && searchResults.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("没有找到匹配项") }
+                state.roots.isEmpty() -> EmptyState("暂无数据", "先从右侧导入 Tree.py 导出的文本，然后我会在这里构建可展开的文件树。")
+                searching && searchResults.isEmpty() -> EmptyState("没有找到匹配项", "试试更短的关键词，或者按目录名、盘符、文件后缀来搜。")
                 searching -> LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(searchResults, key = { it.node.id }) { SearchRow(it) }
                 }
@@ -150,7 +169,11 @@ private fun FilePane(fileName: String?, errorMessage: String?, onOpenFile: () ->
     Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("文件", style = MaterialTheme.typography.titleMedium)
         Text(fileName?.let { "已打开：$it" } ?: "选择 Tree.py 导出的文本文件并加载到上方树视图", color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-        Button(onClick = onOpenFile) { Icon(Icons.Filled.UploadFile, null); Spacer(Modifier.width(8.dp)); Text(if (fileName != null) "更换文件" else "选择文件") }
+        Button(onClick = onOpenFile, shape = RoundedCornerShape(16.dp), contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
+            Icon(Icons.Filled.UploadFile, null)
+            Spacer(Modifier.width(8.dp))
+            Text(if (fileName != null) "更换文件" else "选择文件")
+        }
         if (errorMessage != null) Text(errorMessage, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
     }
 }
@@ -159,14 +182,22 @@ private fun FilePane(fileName: String?, errorMessage: String?, onOpenFile: () ->
 private fun SettingsPane(themeMode: ThemeMode, onThemeChange: (ThemeMode) -> Unit) {
     val uriHandler = LocalUriHandler.current
     val projectUrl = "https://github.com/100pangci/DiskTree-GUI"
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("设置", style = MaterialTheme.typography.titleMedium)
+    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        Text("设置", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
         Text("主题模式", color = MaterialTheme.colorScheme.onSurfaceVariant)
         ThemeSwitch(themeMode, onThemeChange)
         HorizontalDivider()
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Filled.FolderOpen, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
-            Text("DiskTree GUI", fontWeight = FontWeight.Bold)
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                Modifier
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.FolderOpen, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
+            }
+            Text("DiskTree GUI", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
             Text("版本 1.0.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("一个用于读取 Tree.py 导出文本的跨平台文件树浏览器。\nKotlin Multiplatform + Compose Multiplatform", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             Text(projectUrl, color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline, modifier = Modifier.clickable { uriHandler.openUri(projectUrl) })
@@ -210,14 +241,21 @@ private fun flattenVisibleNodes(nodes: List<TreeNode>, state: DiskTreeState): Li
 @Composable
 private fun SearchRow(item: SearchResultItem) {
     val isDir = item.node.isDirectory || item.node.children.isNotEmpty()
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(if (isDir) Icons.Filled.Folder else Icons.Filled.Description, null, tint = if (isDir) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text(item.node.name, fontWeight = FontWeight.Medium, maxLines = 1)
+            Text(item.node.name, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (item.parentPath.isNotBlank()) Text(item.parentPath, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-        Text(item.fullPath, style = MaterialTheme.typography.labelSmall, color = if (item.isDirectMatch) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        if (item.parentPath.isNotBlank()) Text(item.parentPath, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(item.fullPath, style = MaterialTheme.typography.labelSmall, color = if (item.isDirectMatch) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -225,13 +263,152 @@ private fun SearchRow(item: SearchResultItem) {
 private fun TreeRow(node: TreeNode, expanded: Boolean, onToggle: () -> Unit) {
     val isDir = node.isDirectory || node.children.isNotEmpty()
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(enabled = node.children.isNotEmpty(), onClick = onToggle).background(MaterialTheme.colorScheme.surface).padding(start = (node.depth * 16).dp + 4.dp, top = 8.dp, bottom = 8.dp, end = 12.dp),
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(enabled = node.children.isNotEmpty(), onClick = onToggle)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(start = (node.depth * 16).dp + 8.dp, top = 10.dp, bottom = 10.dp, end = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (node.children.isNotEmpty()) Icon(if (expanded) Icons.Filled.ExpandMore else Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) else Spacer(Modifier.size(18.dp))
         Spacer(Modifier.width(4.dp))
         Icon(if (isDir) if (expanded) Icons.Filled.FolderOpen else Icons.Filled.Folder else Icons.Filled.Description, null, tint = if (isDir) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
-        Text(node.name, fontWeight = if (isDir) FontWeight.Medium else FontWeight.Normal, maxLines = 1)
+        Text(node.name, fontWeight = if (isDir) FontWeight.Medium else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun DesktopSidebar(state: DiskTreeState, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(30.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
+    ) {
+        Column(
+            Modifier.fillMaxSize().padding(vertical = 22.dp, horizontal = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Box(
+                Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.AccountTree, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+            }
+            DesktopNavButton("文件", Icons.Filled.FolderOpen, state.activeTab == BottomTab.Files) { state.activeTab = BottomTab.Files }
+            DesktopNavButton("设置", Icons.Filled.Settings, state.activeTab == BottomTab.Settings) { state.activeTab = BottomTab.Settings }
+            Spacer(Modifier.weight(1f))
+            Text("桌面版", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun DesktopNavButton(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
+    val bg = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .background(bg)
+            .padding(vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(icon, null, tint = fg)
+        Text(label, color = fg, style = MaterialTheme.typography.labelLarge, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun DesktopHeroSection(fileName: String?, visibleCount: Int, resultCount: Int, searching: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(30.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+        )
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 22.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("DiskTree Desktop", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(
+                    fileName?.let { "正在浏览：$it" } ?: "导入 Tree.py 导出的文本后，这里会提供更适合大屏的浏览体验。",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(Modifier.width(20.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                DesktopMetricCard("可见节点", visibleCount.toString())
+                DesktopMetricCard(if (searching) "搜索结果" else "当前状态", if (searching) resultCount.toString() else "就绪")
+            }
+        }
+    }
+}
+
+@Composable
+private fun DesktopMetricCard(label: String, value: String) {
+    Column(
+        Modifier
+            .clip(RoundedCornerShape(22.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.58f))
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun DesktopQuickPanel(fileName: String?, errorMessage: String?, onOpenFile: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(30.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
+    ) {
+        Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            Text("快速操作", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text("导入、替换文件，以及查看当前状态。这个区域在大屏下会保持稳定的控制面板体验。", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            FilePane(fileName, errorMessage, onOpenFile)
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(title: String, description: String) {
+    Column(
+        Modifier.fillMaxSize().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            Modifier
+                .size(72.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Filled.FolderOpen, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(8.dp))
+        Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
 }
