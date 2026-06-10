@@ -1,6 +1,7 @@
 package io.github.disktreegui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -299,6 +300,7 @@ private fun flattenVisibleNodes(nodes: List<TreeNode>, state: DiskTreeState): Li
     return result
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SearchRow(item: SearchResultItem, selected: Boolean, onClick: () -> Unit, onDoubleClick: () -> Unit) {
     val isDir = item.node.isDirectory || item.node.children.isNotEmpty()
