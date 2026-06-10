@@ -25,8 +25,8 @@ function Copy-IfExists {
 Write-Host '==> Generating Gradle wrapper with Gradle 8.10'
 gradle -b wrapper.gradle.kts wrapper --no-daemon
 
-Write-Host '==> Building Desktop package for current OS'
-.\gradlew.bat :composeApp:packageDistributionForCurrentOS --no-daemon
+Write-Host '==> Building Desktop portable distribution for current OS'
+.\gradlew.bat :composeApp:createDistributable --no-daemon
 Copy-IfExists -SourcePath (Join-Path $RootDir 'composeApp\build\compose\binaries') -TargetDir (Join-Path $ReleasesDir 'desktop')
 
 Write-Host "==> Release artifacts collected in $ReleasesDir"
