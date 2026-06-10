@@ -23,11 +23,13 @@ class DiskTreeState {
     var loadedFileName by mutableStateOf<String?>(null)
     var errorMessage by mutableStateOf<String?>(null)
     var activeTab by mutableStateOf(BottomTab.Files)
-    var themeMode by mutableStateOf(
+    private val _themeMode = mutableStateOf(
         if (AppSettings.getString(SettingsKeys.THEME_MODE, "Dark") == "Light") ThemeMode.Light else ThemeMode.Dark
     )
+    var themeMode: ThemeMode
+        get() = _themeMode.value
         set(value) {
-            field = value
+            _themeMode.value = value
             AppSettings.putString(SettingsKeys.THEME_MODE, value.name)
         }
     val roots = mutableStateListOf<TreeNode>()
