@@ -88,7 +88,7 @@ private fun CompactLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, se
             Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
                 if (state.activeTab == BottomTab.Files) {
                     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        CompactHeroSection(state.loadedFileName, visibleNodes.size, searchResults.size, searching, onOpenFile)
+                        CompactHeroSection(state.loadedFileName, searchResults.size, searching, onOpenFile)
                         FilesPane(state, visibleNodes, searchResults, searching, Modifier.weight(1f), showFileSummary = false)
                     }
                 } else {
@@ -136,7 +136,7 @@ private fun WideLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, searc
         DesktopSidebar(state, Modifier.width(104.dp).fillMaxHeight())
         if (state.activeTab == BottomTab.Files) {
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                DesktopHeroSection(state.loadedFileName, visibleNodes.size, searchResults.size, searching)
+                DesktopHeroSection(state.loadedFileName, searchResults.size, searching)
                 Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     FilesPane(state, visibleNodes, searchResults, searching, Modifier.weight(1f), showFileSummary = false)
                     DesktopQuickPanel(state.loadedFileName, state.errorMessage, onOpenFile, Modifier.widthIn(min = 340.dp, max = 380.dp).fillMaxHeight())
@@ -488,7 +488,7 @@ private fun DesktopNavButton(label: String, icon: ImageVector, selected: Boolean
 }
 
 @Composable
-private fun DesktopHeroSection(fileName: String?, visibleCount: Int, resultCount: Int, searching: Boolean) {
+private fun DesktopHeroSection(fileName: String?, resultCount: Int, searching: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(30.dp),
@@ -512,15 +512,14 @@ private fun DesktopHeroSection(fileName: String?, visibleCount: Int, resultCount
             }
             Spacer(Modifier.width(20.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DesktopMetricCard("可见节点", visibleCount.toString())
-                DesktopMetricCard(if (searching) "搜索结果" else "当前状态", if (searching) resultCount.toString() else "就绪")
+                StatusMetricCard(if (searching) "搜索结果" else "当前状态", if (searching) resultCount.toString() else "就绪")
             }
         }
     }
 }
 
 @Composable
-private fun DesktopMetricCard(label: String, value: String) {
+private fun StatusMetricCard(label: String, value: String) {
     Column(
         Modifier
             .clip(RoundedCornerShape(22.dp))
@@ -573,7 +572,7 @@ private fun EmptyState(title: String, description: String) {
 }
 
 @Composable
-private fun CompactHeroSection(fileName: String?, visibleCount: Int, resultCount: Int, searching: Boolean, onOpenFile: () -> Unit) {
+private fun CompactHeroSection(fileName: String?, resultCount: Int, searching: Boolean, onOpenFile: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -588,8 +587,7 @@ private fun CompactHeroSection(fileName: String?, visibleCount: Int, resultCount
                 overflow = TextOverflow.Ellipsis
             )
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                CompactMetricChip("节点", visibleCount.toString())
-                CompactMetricChip(if (searching) "结果" else "状态", if (searching) resultCount.toString() else "就绪")
+                StatusMetricChip(if (searching) "结果" else "状态", if (searching) resultCount.toString() else "就绪")
                 Spacer(Modifier.weight(1f))
                 FilledTonalButton(
                     onClick = onOpenFile,
@@ -610,7 +608,7 @@ private fun CompactHeroSection(fileName: String?, visibleCount: Int, resultCount
 }
 
 @Composable
-private fun CompactMetricChip(label: String, value: String) {
+private fun StatusMetricChip(label: String, value: String) {
     Row(
         Modifier
             .clip(RoundedCornerShape(999.dp))
