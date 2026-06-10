@@ -344,7 +344,9 @@ private fun resolveNodeVisual(name: String, isDirectory: Boolean, expanded: Bool
         "zip", "rar", "7z", "tar", "gz", "bz2" -> Icons.Filled.Archive to Color(0xFFA1887F)
         "kt", "kts", "java", "py", "js", "ts", "tsx", "jsx", "c", "cpp", "h", "hpp", "cs", "go", "rs", "php", "swift", "rb", "sh", "bat", "ps1" -> Icons.Filled.Code to Color(0xFF9575CD)
         "json", "xml", "yaml", "yml", "toml", "ini", "cfg", "conf", "log" -> Icons.Filled.DataObject to Color(0xFF4DB6AC)
-        "exe", "msi", "apk", "jar" -> Icons.Filled.Android to Color(0xFF8BC34A)
+        "apk" -> Icons.Filled.Android to Color(0xFF8BC34A)
+        "exe", "msi" -> Icons.Filled.Apps to Color(0xFF8BC34A)
+        "jar" -> Icons.Filled.Inventory2 to Color(0xFFFFCC80)
         "txt", "md" -> Icons.Filled.Description to Color(0xFF90A4AE)
         else -> Icons.Filled.InsertDriveFile to MaterialTheme.colorScheme.onSurfaceVariant
     }
