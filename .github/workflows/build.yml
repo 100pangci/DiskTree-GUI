@@ -34,6 +34,9 @@ jobs:
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > $RUNNER_TEMP/android-release.jks
 
+      - name: Generate Gradle wrapper
+        run: gradle -b wrapper.gradle.kts wrapper --no-daemon
+
       - name: Build Android debug
         run: ./gradlew :composeApp:assembleDebug --no-daemon
 
@@ -69,6 +72,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.10
+
+      - name: Generate Gradle wrapper
+        run: gradle -b wrapper.gradle.kts wrapper --no-daemon
 
       - name: Build Linux desktop package
         run: ./gradlew :composeApp:packageDistributionForCurrentOS --no-daemon
