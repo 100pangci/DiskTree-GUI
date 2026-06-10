@@ -73,17 +73,17 @@ def generate_tree(directory, prefix='', level=0):
         # os.scandir 是性能优化的关键
         with os.scandir(directory) as it:
             # 过滤并排序：先按文件名排序确保输出稳定
-            entries = sorted(
-                [e for e in it if e.name.lower() not in IGNORE_DIRS],
-                key=lambda e: e.name.lower()
-            )
-            
+            all_entries = [e for e in it if e.name.lower() not in IGNORE_DIRS]
+            dirs = sorted([e for e in all_entries if e.is_dir(follow_symlinks=False)], key=lambda e: e.name.lower())
+            files = sorted([e for e in all_entries if not e.is_dir(follow_symlinks=False)], key=lambda e: e.name.lower())
+            entries = dirs + files
+
             count = len(entries)
             for i, entry in enumerate(entries):
                 is_last = (i == count - 1)
                 pointer = '└── ' if is_last else '├── '
-                
-                print(f"{prefix}{pointer}{entry.name}")
+                display_name = entry.name + '/' if entry.is_dir(follow_symlinks=False) else entry.name
+                print(f"{prefix}{pointer}{display_name}")
                 
                 # entry.is_dir() 利用了缓存的元数据，无需再次请求操作系统
                 if entry.is_dir(follow_symlinks=False):

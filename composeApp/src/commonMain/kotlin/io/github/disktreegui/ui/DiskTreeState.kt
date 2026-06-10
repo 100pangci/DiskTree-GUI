@@ -32,7 +32,6 @@ class DiskTreeState {
             roots.clear()
             roots.addAll(nodes)
             expandedIds.clear()
-            nodes.forEach { expandedIds.add(it.id) }
             loadedFileName = fileName
             activeTab = BottomTab.Files
             errorMessage = if (nodes.isEmpty()) "没有解析到可用节点，请确认导入的是 Tree.py 导出的文本。" else null

@@ -11,3 +11,4 @@ local.properties
 *.base64.txt
 android-release.jks
 .aider*
+.clinerules

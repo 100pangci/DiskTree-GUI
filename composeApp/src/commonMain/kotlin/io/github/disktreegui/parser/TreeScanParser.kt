@@ -35,13 +35,14 @@ object TreeScanParser {
                     return@forEach
                 }
 
-                val depth = computeDepth(line, markerIndex)
+                val depth = computeDepth(line, markerIndex) + 1
                 val name = line.substring(markerIndex + 4).trim()
+                val isDir = name.endsWith("/") || !name.contains(".")
                 val node = TreeNode(
                     id = buildId(stack, name, depth),
                     name = name,
                     depth = depth,
-                    isDirectory = !name.startsWith("[")
+                    isDirectory = isDir
                 )
 
                 while (stack.size > depth + 1) {
