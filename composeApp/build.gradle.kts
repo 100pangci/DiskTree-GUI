@@ -2,6 +2,25 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 fun env(name: String): String? = System.getenv(name)?.takeIf { it.isNotBlank() }
 
+val rawAppVersion = env("DISKTREE_VERSION") ?: "1.0.0"
+val appVersion = rawAppVersion.removePrefix("v")
+
+fun versionCodeFrom(version: String): Int {
+    val parts = version.split(".")
+        .mapNotNull { it.toIntOrNull() }
+        .take(3)
+        .toMutableList()
+
+    while (parts.size < 3) {
+        parts += 0
+    }
+
+    val (major, minor, patch) = parts
+    return major * 10000 + minor * 100 + patch
+}
+
+val appVersionCode = versionCodeFrom(appVersion)
+
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("org.jetbrains.compose")
@@ -56,8 +75,8 @@ android {
         applicationId = "io.github.disktreegui"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = appVersionCode
+        versionName = appVersion
     }
 
     compileOptions {
@@ -100,7 +119,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "DiskTree GUI"
-            packageVersion = "1.0.0"
+            packageVersion = appVersion
             modules("java.base", "java.desktop", "java.logging", "java.sql")
             linux { iconFile.set(project.file("src/desktopMain/resources/app_icon.png")) }
             windows { iconFile.set(project.file("src/desktopMain/resources/app_icon.png")) }
