@@ -10,3 +10,4 @@ local.properties
 *.keystore
 *.base64.txt
 android-release.jks
+.aider*
