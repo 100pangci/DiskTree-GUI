@@ -80,8 +80,7 @@ private fun CompactLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, se
             Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
                 if (state.activeTab == BottomTab.Files) {
                     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        CompactHeroSection(state.loadedFileName, visibleNodes.size, searchResults.size, searching)
-                        CompactFilePanel(state.loadedFileName, state.errorMessage, onOpenFile)
+                        CompactHeroSection(state.loadedFileName, visibleNodes.size, searchResults.size, searching, onOpenFile)
                         FilesPane(state, visibleNodes, searchResults, searching, Modifier.weight(1f), showFileSummary = true)
                     }
                 } else {
@@ -107,18 +106,6 @@ private fun CompactLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, se
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         )
-    }
-}
-
-@Composable
-private fun CompactFilePanel(fileName: String?, errorMessage: String?, onOpenFile: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-    ) {
-        FilePane(fileName, errorMessage, onOpenFile)
     }
 }
 
@@ -519,7 +506,7 @@ private fun EmptyState(title: String, description: String) {
 }
 
 @Composable
-private fun CompactHeroSection(fileName: String?, visibleCount: Int, resultCount: Int, searching: Boolean) {
+private fun CompactHeroSection(fileName: String?, visibleCount: Int, resultCount: Int, searching: Boolean, onOpenFile: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -533,9 +520,23 @@ private fun CompactHeroSection(fileName: String?, visibleCount: Int, resultCount
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 CompactMetricChip("节点", visibleCount.toString())
                 CompactMetricChip(if (searching) "结果" else "状态", if (searching) resultCount.toString() else "就绪")
+                Spacer(Modifier.weight(1f))
+                FilledTonalButton(
+                    onClick = onOpenFile,
+                    shape = RoundedCornerShape(999.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.42f),
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                ) {
+                    Icon(Icons.Filled.UploadFile, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (fileName != null) "更换文件" else "选择文件")
+                }
             }
         }
     }
