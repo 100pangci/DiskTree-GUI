@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -196,7 +197,15 @@ private fun FilesPane(
                 searching && searchResults.isEmpty() -> EmptyState("没有找到匹配项", "试试更短的关键词，或者按目录名、盘符、文件后缀来搜。")
                 searching -> LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(searchResults, key = { it.node.id }) {
-                        SearchRow(it, selected = state.isSelected(it.node)) { state.revealNode(it.node) }
+                        SearchRow(
+                            item = it,
+                            selected = state.isSelected(it.node),
+                            onClick = { state.revealNode(it.node) },
+                            onDoubleClick = {
+                                state.revealNode(it.node)
+                                state.clearSearch()
+                            }
+                        )
                     }
                 }
                 else -> LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -291,7 +300,7 @@ private fun flattenVisibleNodes(nodes: List<TreeNode>, state: DiskTreeState): Li
 }
 
 @Composable
-private fun SearchRow(item: SearchResultItem, selected: Boolean, onClick: () -> Unit) {
+private fun SearchRow(item: SearchResultItem, selected: Boolean, onClick: () -> Unit, onDoubleClick: () -> Unit) {
     val isDir = item.node.isDirectory || item.node.children.isNotEmpty()
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
@@ -310,7 +319,7 @@ private fun SearchRow(item: SearchResultItem, selected: Boolean, onClick: () -> 
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .hoverable(interactionSource)
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onDoubleClick = onDoubleClick)
             .background(backgroundColor)
             .border(1.dp, borderColor, RoundedCornerShape(18.dp))
             .padding(14.dp),

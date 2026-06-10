@@ -118,6 +118,12 @@ class DiskTreeState {
         searchQuery = query
     }
 
+    fun clearSearch() {
+        searchQuery = ""
+        appliedSearchQuery = ""
+        searchResults.clear()
+    }
+
     fun selectNode(node: TreeNode) {
         selectedNodeId = node.id
     }
