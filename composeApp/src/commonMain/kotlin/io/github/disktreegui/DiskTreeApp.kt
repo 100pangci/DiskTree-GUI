@@ -181,7 +181,7 @@ private fun FilesPane(
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Filled.Search, null) },
                 label = { Text("搜索文件或路径") },
-                placeholder = { Text("输入停止 250ms 后再搜索") },
+                placeholder = { Text("键入关键词") },
                 shape = RoundedCornerShape(18.dp)
             )
         }
