@@ -1,0 +1,32 @@
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$RootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $RootDir
+
+$ReleasesDir = Join-Path $RootDir 'Releases'
+if (Test-Path $ReleasesDir) {
+    Remove-Item $ReleasesDir -Recurse -Force
+}
+New-Item -ItemType Directory -Path $ReleasesDir | Out-Null
+
+function Copy-IfExists {
+    param(
+        [string]$SourcePath,
+        [string]$TargetDir
+    )
+
+    if (Test-Path $SourcePath) {
+        New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
+        Copy-Item -Path $SourcePath -Destination $TargetDir -Recurse -Force
+    }
+}
+
+Write-Host '==> Generating Gradle wrapper with Gradle 8.10'
+gradle -b wrapper.gradle.kts wrapper --no-daemon
+
+Write-Host '==> Building Desktop package for current OS'
+.\gradlew.bat :composeApp:packageDistributionForCurrentOS --no-daemon
+Copy-IfExists -SourcePath (Join-Path $RootDir 'composeApp\build\compose\binaries') -TargetDir (Join-Path $ReleasesDir 'desktop')
+
+Write-Host "==> Release artifacts collected in $ReleasesDir"

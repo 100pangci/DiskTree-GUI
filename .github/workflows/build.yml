@@ -28,18 +28,17 @@ jobs:
         with:
           gradle-version: 8.10
 
-      - name: Build Android + shared modules
-        run: ./gradlew :composeApp:assembleDebug
-
       - name: Decode Android keystore
         if: ${{ github.event_name != 'pull_request' && env.ANDROID_KEYSTORE_BASE64 != '' }}
         shell: bash
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > $RUNNER_TEMP/android-release.jks
 
-      - name: Build signed Android release
-        if: ${{ github.event_name != 'pull_request' && env.ANDROID_KEYSTORE_BASE64 != '' }}
-        run: ./gradlew :composeApp:assembleRelease
+      - name: Make build script executable
+        run: chmod +x ./build-release.sh
+
+      - name: Build Android + shared modules
+        run: ./build-release.sh
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/android-release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ env.ANDROID_KEYSTORE_PASSWORD }}
@@ -50,8 +49,8 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: android-apks
-          path: composeApp/build/outputs/apk/
+          name: releases-android-linux
+          path: Releases/
 
   build-desktop-macos:
     runs-on: macos-latest
@@ -70,15 +69,18 @@ jobs:
         with:
           gradle-version: 8.10
 
-      - name: Package Desktop app
-        run: ./gradlew :composeApp:packageDistributionForCurrentOS
+      - name: Make build script executable
+        run: chmod +x ./build-release.sh
+
+      - name: Build release bundle for macOS
+        run: ./build-release.sh
 
       - name: Upload Desktop artifacts
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-distributions-macos
-          path: composeApp/build/compose/binaries/
+          name: releases-macos
+          path: Releases/
 
   build-desktop-windows:
     runs-on: windows-latest
@@ -97,12 +99,13 @@ jobs:
         with:
           gradle-version: 8.10
 
-      - name: Package Desktop app for Windows
-        run: .\gradlew.bat :composeApp:packageDistributionForCurrentOS
+      - name: Build release bundle for Windows
+        shell: pwsh
+        run: .\build-release.ps1
 
       - name: Upload Windows Desktop artifacts
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-distributions-windows
-          path: composeApp/build/compose/binaries/
+          name: releases-windows
+          path: Releases/
