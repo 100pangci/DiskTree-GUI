@@ -46,6 +46,8 @@ class DiskTreeState {
     var errorMessage by mutableStateOf<String?>(null)
     var activeTab by mutableStateOf(BottomTab.Files)
     var selectedNodeId by mutableStateOf<String?>(null)
+    var pendingScrollToNodeId by mutableStateOf<String?>(null)
+        private set
     var searchQuery by mutableStateOf("")
     var appliedSearchQuery by mutableStateOf("")
         private set
@@ -76,6 +78,7 @@ class DiskTreeState {
             searchResults.clear()
             loadedFileName = fileName
             selectedNodeId = null
+            pendingScrollToNodeId = null
             activeTab = BottomTab.Files
             persistLastLoadedFile(content, fileName)
             errorMessage = if (nodes.isEmpty()) "没有解析到可用节点，请确认导入的是 Tree.py 导出的文本。" else null
@@ -88,6 +91,7 @@ class DiskTreeState {
             appliedSearchQuery = ""
             loadedFileName = fileName
             selectedNodeId = null
+            pendingScrollToNodeId = null
             errorMessage = it.message ?: "解析失败"
         }
     }
@@ -126,6 +130,7 @@ class DiskTreeState {
 
     fun selectNode(node: TreeNode) {
         selectedNodeId = node.id
+        pendingScrollToNodeId = null
     }
 
     fun isSelected(node: TreeNode): Boolean = selectedNodeId == node.id
@@ -135,6 +140,7 @@ class DiskTreeState {
             for (node in nodes) {
                 if (node.id == targetId) {
                     selectedNodeId = node.id
+                    pendingScrollToNodeId = node.id
                     return true
                 }
                 if (expandPath(node.children)) {
@@ -148,6 +154,10 @@ class DiskTreeState {
         }
 
         expandPath(roots)
+    }
+
+    fun consumePendingScrollToNodeId() {
+        pendingScrollToNodeId = null
     }
 
     fun revealNode(node: TreeNode) {

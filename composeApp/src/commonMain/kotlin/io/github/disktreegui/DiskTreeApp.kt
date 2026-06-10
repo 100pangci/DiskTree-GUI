@@ -11,6 +11,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,6 +37,11 @@ import io.github.disktreegui.ui.DiskTreeState
 import io.github.disktreegui.ui.SearchResultItem
 import io.github.disktreegui.ui.ThemeMode
 import kotlinx.coroutines.delay
+
+private data class NodeVisual(
+    val icon: ImageVector,
+    val tint: Color
+)
 
 @Composable
 fun DiskTreeApp(filePickerLauncher: FilePickerLauncher? = null, onAppLaunch: ((DiskTreeState) -> Unit)? = null) {
@@ -83,7 +89,7 @@ private fun CompactLayout(state: DiskTreeState, visibleNodes: List<TreeNode>, se
                 if (state.activeTab == BottomTab.Files) {
                     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         CompactHeroSection(state.loadedFileName, visibleNodes.size, searchResults.size, searching, onOpenFile)
-                        FilesPane(state, visibleNodes, searchResults, searching, Modifier.weight(1f), showFileSummary = true)
+                        FilesPane(state, visibleNodes, searchResults, searching, Modifier.weight(1f), showFileSummary = false)
                     }
                 } else {
                     Card(
@@ -159,6 +165,19 @@ private fun FilesPane(
     showFileSummary: Boolean = true
 ) {
     val count = if (searching) searchResults.size else visibleNodes.size
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(state.pendingScrollToNodeId, searching, visibleNodes) {
+        val targetId = state.pendingScrollToNodeId ?: return@LaunchedEffect
+        if (searching) return@LaunchedEffect
+
+        val targetIndex = visibleNodes.indexOfFirst { it.id == targetId }
+        if (targetIndex >= 0) {
+            listState.animateScrollToItem(targetIndex)
+            state.consumePendingScrollToNodeId()
+        }
+    }
+
     Column(modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("树形浏览", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
@@ -209,7 +228,11 @@ private fun FilesPane(
                         )
                     }
                 }
-                else -> LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                else -> LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize().padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     items(visibleNodes, key = { it.id }) {
                         TreeRow(
                             node = it,
@@ -300,10 +323,40 @@ private fun flattenVisibleNodes(nodes: List<TreeNode>, state: DiskTreeState): Li
     return result
 }
 
+@Composable
+private fun resolveNodeVisual(name: String, isDirectory: Boolean, expanded: Boolean = false): NodeVisual {
+    if (isDirectory) {
+        return NodeVisual(
+            icon = if (expanded) Icons.Filled.FolderOpen else Icons.Filled.Folder,
+            tint = MaterialTheme.colorScheme.primary
+        )
+    }
+
+    val extension = name.substringAfterLast('.', missingDelimiterValue = "").lowercase()
+    val visual = when (extension) {
+        "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "ico" -> Icons.Filled.Image to Color(0xFF4FC3F7)
+        "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm" -> Icons.Filled.Movie to Color(0xFFE57373)
+        "mp3", "wav", "flac", "aac", "ogg", "m4a" -> Icons.Filled.MusicNote to Color(0xFFBA68C8)
+        "pdf" -> Icons.Filled.PictureAsPdf to Color(0xFFEF5350)
+        "doc", "docx", "rtf", "odt" -> Icons.Filled.Article to Color(0xFF64B5F6)
+        "xls", "xlsx", "csv" -> Icons.Filled.TableChart to Color(0xFF81C784)
+        "ppt", "pptx" -> Icons.Filled.Slideshow to Color(0xFFFFB74D)
+        "zip", "rar", "7z", "tar", "gz", "bz2" -> Icons.Filled.Archive to Color(0xFFA1887F)
+        "kt", "kts", "java", "py", "js", "ts", "tsx", "jsx", "c", "cpp", "h", "hpp", "cs", "go", "rs", "php", "swift", "rb", "sh", "bat", "ps1" -> Icons.Filled.Code to Color(0xFF9575CD)
+        "json", "xml", "yaml", "yml", "toml", "ini", "cfg", "conf", "log" -> Icons.Filled.DataObject to Color(0xFF4DB6AC)
+        "exe", "msi", "apk", "jar" -> Icons.Filled.Android to Color(0xFF8BC34A)
+        "txt", "md" -> Icons.Filled.Description to Color(0xFF90A4AE)
+        else -> Icons.Filled.InsertDriveFile to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    return NodeVisual(icon = visual.first, tint = visual.second)
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SearchRow(item: SearchResultItem, selected: Boolean, onClick: () -> Unit, onDoubleClick: () -> Unit) {
     val isDir = item.node.isDirectory || item.node.children.isNotEmpty()
+    val visual = resolveNodeVisual(item.node.name, isDir)
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
     val backgroundColor = when {
@@ -328,7 +381,7 @@ private fun SearchRow(item: SearchResultItem, selected: Boolean, onClick: () -> 
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(if (isDir) Icons.Filled.Folder else Icons.Filled.Description, null, tint = if (isDir) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+            Icon(visual.icon, null, tint = visual.tint, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text(item.node.name, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -340,6 +393,7 @@ private fun SearchRow(item: SearchResultItem, selected: Boolean, onClick: () -> 
 @Composable
 private fun TreeRow(node: TreeNode, expanded: Boolean, selected: Boolean, onToggle: () -> Unit, onSelect: () -> Unit) {
     val isDir = node.isDirectory || node.children.isNotEmpty()
+    val visual = resolveNodeVisual(node.name, isDir, expanded)
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
     val backgroundColor = when {
@@ -376,7 +430,7 @@ private fun TreeRow(node: TreeNode, expanded: Boolean, selected: Boolean, onTogg
         Spacer(Modifier.width(8.dp))
         if (node.children.isNotEmpty()) Icon(if (expanded) Icons.Filled.ExpandMore else Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) else Spacer(Modifier.size(18.dp))
         Spacer(Modifier.width(4.dp))
-        Icon(if (isDir) if (expanded) Icons.Filled.FolderOpen else Icons.Filled.Folder else Icons.Filled.Description, null, tint = if (isDir) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+        Icon(visual.icon, null, tint = visual.tint, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
         Text(node.name, fontWeight = if (isDir) FontWeight.Medium else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
