@@ -1,5 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
+fun env(name: String): String? = System.getenv(name)?.takeIf { it.isNotBlank() }
+
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("org.jetbrains.compose")
@@ -44,6 +46,11 @@ android {
     namespace = "io.github.disktreegui"
     compileSdk = 34
 
+    val keystorePath = env("ANDROID_KEYSTORE_PATH")
+    val keystorePassword = env("ANDROID_KEYSTORE_PASSWORD")
+    val keyAlias = env("ANDROID_KEY_ALIAS")
+    val keyPassword = env("ANDROID_KEY_PASSWORD")
+
     defaultConfig {
         applicationId = "io.github.disktreegui"
         minSdk = 24
@@ -55,6 +62,28 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    signingConfigs {
+        if (keystorePath != null && keystorePassword != null && keyAlias != null && keyPassword != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            isMinifyEnabled = false
+        }
+
+        getByName("release") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
+        }
     }
 }
 

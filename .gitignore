@@ -6,3 +6,7 @@ local.properties
 *.iml
 *.log
 .DS_Store
+*.jks
+*.keystore
+*.base64.txt
+android-release.jks
