@@ -12,4 +12,6 @@ expect object AppSettings {
 object SettingsKeys {
     const val THEME_MODE = "theme_mode"
     const val LAST_OPENED_FILE_PATH = "last_opened_file_path"
+    const val LAST_OPENED_FILE_NAME = "last_opened_file_name"
+    const val LAST_OPENED_FILE_CONTENT = "last_opened_file_content"
 }

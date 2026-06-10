@@ -2,28 +2,38 @@ package io.github.disktreegui
 
 import io.github.disktreegui.settings.AppSettings
 import io.github.disktreegui.settings.SettingsKeys
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.window.application
 import java.io.File
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
 
 fun main() = application {
-    Window(onCloseRequest = ::exitApplication, title = "DiskTree GUI") {
+    Window(
+        onCloseRequest = ::exitApplication,
+        title = "DiskTree GUI",
+        state = rememberWindowState(width = 1440.dp, height = 900.dp)
+    ) {
         DiskTreeApp(
             onAppLaunch = { state ->
-                val lastOpenedFilePath = AppSettings.getString(SettingsKeys.LAST_OPENED_FILE_PATH, "")
-                if (lastOpenedFilePath.isNotBlank()) {
-                    val lastOpenedFile = File(lastOpenedFilePath)
-                    runCatching {
-                        if (!lastOpenedFile.isFile) {
-                            error("上次打开的文件不存在：${lastOpenedFile.absolutePath}")
+                state.restoreLastLoadedFile()
+
+                if (state.roots.isEmpty()) {
+                    val lastOpenedFilePath = AppSettings.getString(SettingsKeys.LAST_OPENED_FILE_PATH, "")
+                    if (lastOpenedFilePath.isNotBlank()) {
+                        val lastOpenedFile = File(lastOpenedFilePath)
+                        runCatching {
+                            if (!lastOpenedFile.isFile) {
+                                error("上次打开的文件不存在：${lastOpenedFile.absolutePath}")
+                            }
+                            lastOpenedFile.readText(Charsets.UTF_8)
+                        }.onSuccess { content ->
+                            state.loadFromFile(content, lastOpenedFile.name)
+                        }.onFailure {
+                            state.setError(it.message ?: "自动加载上次文件失败")
                         }
-                        lastOpenedFile.readText(Charsets.UTF_8)
-                    }.onSuccess { content ->
-                        state.loadFromFile(content, lastOpenedFile.name)
-                    }.onFailure {
-                        state.setError(it.message ?: "自动加载上次文件失败")
                     }
                 }
             },

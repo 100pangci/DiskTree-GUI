@@ -16,7 +16,7 @@ object TreeScanParser {
             .filterNot { line -> ignoredPrefixes.any { prefix -> line.startsWith(prefix) } }
             .forEach { line ->
                 if (line.startsWith("磁盘/挂载点: ")) {
-                    val mount = line.removePrefix("磁盘/挂载点: ").trim()
+                    val mount = normalizeNodeName(line.removePrefix("磁盘/挂载点: "))
                     val node = TreeNode(id = mount, name = mount, depth = 0)
                     roots += node
                     stack.clear()
@@ -24,7 +24,7 @@ object TreeScanParser {
                     return@forEach
                 }
 
-                if (stack.isNotEmpty() && line == stack.first().name) {
+                if (stack.isNotEmpty() && normalizeNodeName(line) == stack.first().name) {
                     return@forEach
                 }
 
@@ -36,8 +36,9 @@ object TreeScanParser {
                 }
 
                 val depth = computeDepth(line, markerIndex) + 1
-                val name = line.substring(markerIndex + 4).trim()
-                val isDir = name.endsWith("/") || !name.contains(".")
+                val rawName = line.substring(markerIndex + 4).trim()
+                val name = normalizeNodeName(rawName)
+                val isDir = rawName.endsWith("/") || rawName.endsWith("\\") || !rawName.contains(".")
                 val node = TreeNode(
                     id = buildId(stack, name, depth),
                     name = name,
@@ -66,6 +67,11 @@ object TreeScanParser {
     private fun computeDepth(line: String, markerIndex: Int): Int {
         val prefix = line.substring(0, markerIndex)
         return prefix.chunked(4).count()
+    }
+
+    private fun normalizeNodeName(raw: String): String {
+        val normalized = raw.trim().replace('\\', '/')
+        return if (normalized.length > 1) normalized.trimEnd('/') else normalized
     }
 
     private fun buildId(stack: List<TreeNode>, name: String, depth: Int): String {

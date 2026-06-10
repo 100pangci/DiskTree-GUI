@@ -38,6 +38,8 @@ class DiskTreeState {
     var errorMessage by mutableStateOf<String?>(null)
     var activeTab by mutableStateOf(BottomTab.Files)
     var searchQuery by mutableStateOf("")
+    var appliedSearchQuery by mutableStateOf("")
+        private set
     private val _themeMode = mutableStateOf(
         if (AppSettings.getString(SettingsKeys.THEME_MODE, "Dark") == "Light") ThemeMode.Light else ThemeMode.Dark
     )
@@ -60,10 +62,12 @@ class DiskTreeState {
             roots.addAll(nodes)
             expandedIds.clear()
             searchQuery = ""
+            appliedSearchQuery = ""
             rebuildSearchIndex(nodes)
             searchResults.clear()
             loadedFileName = fileName
             activeTab = BottomTab.Files
+            persistLastLoadedFile(content, fileName)
             errorMessage = if (nodes.isEmpty()) "没有解析到可用节点，请确认导入的是 Tree.py 导出的文本。" else null
         }.onFailure {
             roots.clear()
@@ -71,9 +75,20 @@ class DiskTreeState {
             searchIndex.clear()
             searchResults.clear()
             searchQuery = ""
+            appliedSearchQuery = ""
             loadedFileName = fileName
             errorMessage = it.message ?: "解析失败"
         }
+    }
+
+    fun restoreLastLoadedFile() {
+        if (roots.isNotEmpty()) return
+
+        val content = AppSettings.getString(SettingsKeys.LAST_OPENED_FILE_CONTENT, "")
+        if (content.isBlank()) return
+
+        val name = AppSettings.getString(SettingsKeys.LAST_OPENED_FILE_NAME, "").ifBlank { null }
+        loadFromFile(content, name)
     }
 
     fun setError(message: String) {
@@ -90,7 +105,11 @@ class DiskTreeState {
 
     fun updateSearchQuery(query: String) {
         searchQuery = query
-        val normalizedQuery = query.trim().lowercase()
+    }
+
+    fun performSearch() {
+        val normalizedQuery = searchQuery.trim().lowercase()
+        appliedSearchQuery = normalizedQuery
         if (normalizedQuery.isEmpty()) {
             searchResults.clear()
             return
@@ -129,7 +148,7 @@ class DiskTreeState {
         fun visit(node: TreeNode, parent: SearchIndexEntry?) {
             val entry = SearchIndexEntry(
                 node = node,
-                normalizedName = node.name.removeSuffix("/").lowercase(),
+                normalizedName = node.name.lowercase(),
                 parent = parent
             )
             searchIndex += entry
@@ -148,8 +167,8 @@ class DiskTreeState {
         entry.cachedFullPath?.let { return it }
 
         val fullPath = entry.parent?.let { parent ->
-            buildFullPath(parent) + "/" + entry.node.name.removeSuffix("/")
-        } ?: entry.node.name.removeSuffix("/")
+            buildFullPath(parent) + "/" + entry.node.name
+        } ?: entry.node.name
 
         entry.cachedFullPath = fullPath
         return fullPath
@@ -158,5 +177,10 @@ class DiskTreeState {
     private fun buildParentPath(entry: SearchIndexEntry): String {
         val parent = entry.parent ?: return ""
         return buildFullPath(parent)
+    }
+
+    private fun persistLastLoadedFile(content: String, fileName: String?) {
+        AppSettings.putString(SettingsKeys.LAST_OPENED_FILE_CONTENT, content)
+        AppSettings.putString(SettingsKeys.LAST_OPENED_FILE_NAME, fileName.orEmpty())
     }
 }

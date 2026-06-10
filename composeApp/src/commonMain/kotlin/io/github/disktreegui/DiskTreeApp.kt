@@ -3,6 +3,7 @@ package io.github.disktreegui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,9 +42,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,7 +58,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.disktreegui.model.TreeNode
@@ -60,6 +69,7 @@ import io.github.disktreegui.ui.BottomTab
 import io.github.disktreegui.ui.DiskTreeState
 import io.github.disktreegui.ui.SearchResultItem
 import io.github.disktreegui.ui.ThemeMode
+import kotlinx.coroutines.delay
 
 @Composable
 fun DiskTreeApp(
@@ -68,24 +78,33 @@ fun DiskTreeApp(
 ) {
     val state = remember { DiskTreeState() }
     val visibleNodes by rememberUpdatedState(newValue = flattenVisibleNodes(state.roots, state))
-    val searching = state.searchQuery.isNotBlank()
+    val searching = state.appliedSearchQuery.isNotBlank()
     val searchResults by rememberUpdatedState(newValue = state.searchResults)
 
     LaunchedEffect(state) {
+        state.restoreLastLoadedFile()
         onAppLaunch?.invoke(state)
+    }
+
+    LaunchedEffect(state.searchQuery, state.roots.size) {
+        delay(250)
+        state.performSearch()
     }
 
     DiskTreeTheme(darkTheme = state.themeMode == ThemeMode.Dark) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                when (state.activeTab) {
-                    BottomTab.Files -> {
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val wideScreen = maxWidth >= 1100.dp
+                if (!wideScreen) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        when (state.activeTab) {
+                            BottomTab.Files -> {
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("树形浏览", style = MaterialTheme.typography.titleLarge)
                                 if (state.roots.isNotEmpty()) {
@@ -97,7 +116,7 @@ fun DiskTreeApp(
                                             .padding(horizontal = 8.dp, vertical = 2.dp)
                                     ) {
                                         Text(
-                                            text = "${visibleNodes.size}",
+                                            text = if (searching) "${searchResults.size}" else "${visibleNodes.size}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                                             fontWeight = FontWeight.SemiBold
@@ -122,7 +141,7 @@ fun DiskTreeApp(
                                         Icon(Icons.Filled.Search, contentDescription = null)
                                     },
                                     label = { Text("搜索文件或路径") },
-                                    placeholder = { Text("输入关键字后秒级筛选") }
+                                    placeholder = { Text("输入停止 250ms 后再搜索") }
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 Text(
@@ -209,59 +228,200 @@ fun DiskTreeApp(
                                     }
                                 }
                             }
+                                }
+                            }
+
+                            BottomTab.Settings -> {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                ) {
+                                    SettingsTabContent(
+                                        themeMode = state.themeMode,
+                                        onThemeChange = { state.themeMode = it }
+                                    )
+                                }
+                            }
+
+                        }
+                        HorizontalDivider()
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                        ) {
+                            when (state.activeTab) {
+                                BottomTab.Files -> FileTabContent(
+                                    fileName = state.loadedFileName,
+                                    errorMessage = state.errorMessage,
+                                    onOpenFile = {
+                                        filePickerLauncher?.open(
+                                            { content, name -> state.loadFromFile(content, name) },
+                                            state::setError
+                                        ) ?: state.setError("当前平台暂不支持文件选择器")
+                                    }
+                                )
+
+                                BottomTab.Settings -> Spacer(Modifier.height(0.dp))
+                            }
+
+                            NavigationBar {
+                                NavigationBarItem(
+                                    selected = state.activeTab == BottomTab.Files,
+                                    onClick = { state.activeTab = BottomTab.Files },
+                                    icon = { Icon(Icons.Filled.FolderOpen, contentDescription = "文件") },
+                                    label = { Text("文件") }
+                                )
+                                NavigationBarItem(
+                                    selected = state.activeTab == BottomTab.Settings,
+                                    onClick = { state.activeTab = BottomTab.Settings },
+                                    icon = { Icon(Icons.Filled.Settings, contentDescription = "设置") },
+                                    label = { Text("设置") }
+                                )
+                            }
                         }
                     }
-
-                    BottomTab.Settings -> {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
-                            SettingsTabContent(
-                                themeMode = state.themeMode,
-                                onThemeChange = { state.themeMode = it }
+                } else {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        NavigationRail {
+                            NavigationRailItem(
+                                selected = state.activeTab == BottomTab.Files,
+                                onClick = { state.activeTab = BottomTab.Files },
+                                icon = { Icon(Icons.Filled.FolderOpen, contentDescription = "文件") },
+                                label = { Text("文件") }
+                            )
+                            NavigationRailItem(
+                                selected = state.activeTab == BottomTab.Settings,
+                                onClick = { state.activeTab = BottomTab.Settings },
+                                icon = { Icon(Icons.Filled.Settings, contentDescription = "设置") },
+                                label = { Text("设置") }
                             )
                         }
-                    }
-
-                }
-                HorizontalDivider()
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                ) {
-                    when (state.activeTab) {
-                        BottomTab.Files -> FileTabContent(
-                            fileName = state.loadedFileName,
-                            errorMessage = state.errorMessage,
-                            onOpenFile = {
-                                filePickerLauncher?.open(
-                                    { content, name -> state.loadFromFile(content, name) },
-                                    state::setError
-                                ) ?: state.setError("当前平台暂不支持文件选择器")
+                        VerticalDivider()
+                        when (state.activeTab) {
+                            BottomTab.Files -> Row(
+                                modifier = Modifier.fillMaxSize().padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("树形浏览", style = MaterialTheme.typography.titleLarge)
+                                        if (state.roots.isNotEmpty()) {
+                                            Spacer(Modifier.width(8.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(999.dp))
+                                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = if (searching) "${searchResults.size}" else "${visibleNodes.size}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(
+                                        text = state.loadedFileName?.let { "当前文件：$it" } ?: "尚未打开 Tree.py 导出的文本文件",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    if (state.roots.isNotEmpty()) {
+                                        Spacer(Modifier.height(12.dp))
+                                        OutlinedTextField(
+                                            value = state.searchQuery,
+                                            onValueChange = state::updateSearchQuery,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true,
+                                            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                                            label = { Text("搜索文件或路径") },
+                                            placeholder = { Text("输入停止 250ms 后再搜索") }
+                                        )
+                                        Spacer(Modifier.height(8.dp))
+                                        Text(
+                                            text = if (searching) "搜索到 ${searchResults.size} 条结果" else "当前共 ${visibleNodes.size} 个可见节点",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Spacer(Modifier.height(12.dp))
+                                    Card(
+                                        modifier = Modifier.fillMaxSize(),
+                                        shape = RoundedCornerShape(20.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                    ) {
+                                        if (state.roots.isEmpty()) {
+                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                Text("暂无数据", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        } else if (searching && searchResults.isEmpty()) {
+                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                Text("没有找到匹配项", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        } else if (searching) {
+                                            LazyColumn(
+                                                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp),
+                                                contentPadding = PaddingValues(vertical = 4.dp),
+                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                items(searchResults, key = { it.node.id }) { item ->
+                                                    SearchResultRow(item)
+                                                }
+                                            }
+                                        } else {
+                                            LazyColumn(
+                                                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp),
+                                                contentPadding = PaddingValues(vertical = 4.dp),
+                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                items(visibleNodes, key = { it.id }) { node ->
+                                                    TreeRow(node = node, expanded = state.isExpanded(node), onToggle = { state.toggle(node) })
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                Card(
+                                    modifier = Modifier.widthIn(min = 320.dp, max = 360.dp).fillMaxSize(),
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    FileTabContent(
+                                        fileName = state.loadedFileName,
+                                        errorMessage = state.errorMessage,
+                                        onOpenFile = {
+                                            filePickerLauncher?.open(
+                                                { content, name -> state.loadFromFile(content, name) },
+                                                state::setError
+                                            ) ?: state.setError("当前平台暂不支持文件选择器")
+                                        }
+                                    )
+                                }
                             }
-                        )
-
-                        BottomTab.Settings -> Spacer(Modifier.height(0.dp))
-                    }
-
-                    NavigationBar {
-                        NavigationBarItem(
-                            selected = state.activeTab == BottomTab.Files,
-                            onClick = { state.activeTab = BottomTab.Files },
-                            icon = { Icon(Icons.Filled.FolderOpen, contentDescription = "文件") },
-                            label = { Text("文件") }
-                        )
-                        NavigationBarItem(
-                            selected = state.activeTab == BottomTab.Settings,
-                            onClick = { state.activeTab = BottomTab.Settings },
-                            icon = { Icon(Icons.Filled.Settings, contentDescription = "设置") },
-                            label = { Text("设置") }
-                        )
+                            BottomTab.Settings -> Box(
+                                modifier = Modifier.fillMaxSize().padding(24.dp),
+                                contentAlignment = Alignment.TopCenter
+                            ) {
+                                Card(
+                                    modifier = Modifier.widthIn(max = 900.dp).fillMaxWidth(),
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    SettingsTabContent(
+                                        themeMode = state.themeMode,
+                                        onThemeChange = { state.themeMode = it }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -311,6 +471,7 @@ private fun SettingsTabContent(
     themeMode: ThemeMode,
     onThemeChange: (ThemeMode) -> Unit
 ) {
+    val uriHandler = LocalUriHandler.current
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -354,7 +515,11 @@ private fun SettingsTabContent(
                 "https://github.com/100pangci/DiskTree-GUI",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                textDecoration = TextDecoration.Underline,
+                modifier = Modifier.clickable {
+                    uriHandler.openUri("https://github.com/100pangci/DiskTree-GUI")
+                }
             )
         }
     }
