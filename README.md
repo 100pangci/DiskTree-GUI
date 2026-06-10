@@ -1,6 +1,8 @@
 # DiskTree GUI
 
-一个用于读取 `src/Tree.py` 导出文本的 Kotlin 跨平台 GUI。它不会重新扫描磁盘，而是直接解析已有的树形文本，然后像浏览本地文件一样展开/折叠目录层级。
+一个用于读取 `Tree.py` 导出文本的 Kotlin 跨平台 GUI。它不会重新扫描磁盘，而是直接解析已有的树形文本，然后像浏览本地文件一样展开/折叠目录层级。
+
+`Tree.py` 不再保存在当前仓库中；构建时会从 `https://github.com/100pangci/MyTools.git` 拉取 `src/Python/4.扫描文件树/Tree.py`，并打包后随发布产物一起提供。
 
 ## 当前方案
 
@@ -12,7 +14,7 @@
 
 ## 支持的输入格式
 
-当前解析的是 `src/Tree.py` 生成的纯文本格式，例如：
+当前解析的是 `MyTools` 仓库中 `src/Python/4.扫描文件树/Tree.py` 生成的纯文本格式，例如：
 
 ```text
 ==================================================
@@ -49,20 +51,27 @@ composeApp/
   src/androidMain/   # Android 入口
   src/desktopMain/   # Desktop 入口
 .github/workflows/   # GitHub Actions
-src/Tree.py          # 原始导出脚本
+build-release.*      # 构建 GUI + 拉取并打包外部 Tree.py 的发布脚本
 ```
 
 ## GitHub Actions
 
 仓库已添加两个构建任务：
 
-- `ubuntu-latest`：构建 Android Debug 包
-- `macos-latest`：构建 macOS Desktop 发行包
-- `windows-latest`：构建 Windows Desktop 发行包
+- `ubuntu-latest`：构建 Android Debug 包，以及 Linux Desktop/Tree 发布产物
+- `macos-latest`：构建 macOS Desktop 发行包，并打包 `Tree.py`
+- `windows-latest`：构建 Windows Desktop 发行包，并打包 `Tree.py`
 
 手动触发（`workflow_dispatch`）时，`version` 输入现在可以留空；如果不填写，默认使用 `v1.0.0` 作为版本号。
 
 另外，手动触发只会执行各平台构建并上传 **Artifacts**，不会创建 GitHub Release，也不会向 **Releases** 页面上传文件。只有 `v*` tag push 时才会创建正式 Release。
+
+### Tree.py 来源说明
+
+- 来源仓库：`https://github.com/100pangci/MyTools.git`
+- 来源路径：`src/Python/4.扫描文件树/Tree.py`
+- 当前仓库在 CI / 发布脚本中会在构建时临时拉取该文件
+- 然后使用 `PyInstaller` 打包为单文件可执行程序，并放入 `Releases/` 与其他构建产物一起上传
 
 说明：当前仓库**不依赖本地预生成的 Gradle Wrapper**，CI 通过 `gradle/actions/setup-gradle` 安装并调用指定 Gradle 版本来完成构建。
 
@@ -129,6 +138,9 @@ PowerShell：
 
 GitHub Actions 运行完成后，在 workflow 的 **Artifacts** 中下载：
 
-- `android-apks`
-- `desktop-distributions-macos`
-- `desktop-distributions-windows`
+- `releases-android-*`
+- `releases-linux-*`
+- `releases-macos-*`
+- `releases-windows-portable-*`
+
+其中 Desktop 平台的 `Releases/` 目录内会同时包含 GUI 桌面构建产物，以及从 `MyTools` 仓库拉取后打包得到的 `Tree` 可执行文件。

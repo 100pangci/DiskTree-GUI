@@ -36,6 +36,11 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -80,22 +85,27 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.10
 
-      - name: Generate Gradle wrapper
-        run: gradle -b wrapper.gradle.kts wrapper --no-daemon
+      - name: Make build script executable
+        run: chmod +x ./build-release.sh
 
-      - name: Build Linux desktop package
-        run: ./gradlew :composeApp:packageDistributionForCurrentOS --no-daemon
+      - name: Build release bundle for Linux
+        run: ./build-release.sh
 
       - name: Upload Linux Desktop artifacts
         uses: actions/upload-artifact@v4
         with:
           name: releases-linux-${{ env.DISKTREE_VERSION }}
-          path: composeApp/build/compose/binaries/
+          path: Releases/
 
   build-desktop-macos:
     runs-on: macos-latest
@@ -108,6 +118,11 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -137,6 +152,11 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -195,10 +215,13 @@ jobs:
           android_release_apk="$(find_first_match "artifacts/releases-android-${{ env.DISKTREE_VERSION }}" -name '*release*.apk')"
           android_bundle="$(find_first_match "artifacts/releases-android-${{ env.DISKTREE_VERSION }}" -name '*.aab')"
           linux_deb="$(find_first_match "artifacts/releases-linux-${{ env.DISKTREE_VERSION }}" -name '*.deb')"
+          linux_tree_binary="$(find_first_match "artifacts/releases-linux-${{ env.DISKTREE_VERSION }}" -name 'Tree')"
           macos_dmg="$(find_first_match "artifacts/releases-macos-${{ env.DISKTREE_VERSION }}" -name '*.dmg')"
+          macos_tree_binary="$(find_first_match "artifacts/releases-macos-${{ env.DISKTREE_VERSION }}" -name 'Tree')"
           windows_msi="$(find_first_match "artifacts/releases-windows-portable-${{ env.DISKTREE_VERSION }}" -name '*.msi')"
           windows_exe="$(find_first_match "artifacts/releases-windows-portable-${{ env.DISKTREE_VERSION }}" -name '*.exe')"
           windows_zip="$(find_first_match "artifacts/releases-windows-portable-${{ env.DISKTREE_VERSION }}" -name '*.zip')"
+          windows_tree_binary="$(find_first_match "artifacts/releases-windows-portable-${{ env.DISKTREE_VERSION }}" -name 'Tree.exe')"
 
           version_no_prefix="${DISKTREE_VERSION#v}"
 
@@ -206,10 +229,13 @@ jobs:
           copy_asset "$android_release_apk" "DiskTree-GUI-v${version_no_prefix}-android-release.apk"
           copy_asset "$android_bundle" "DiskTree-GUI-v${version_no_prefix}-android-release.aab"
           copy_asset "$linux_deb" "DiskTree-GUI-v${version_no_prefix}-linux.deb"
+          copy_asset "$linux_tree_binary" "Tree-v${version_no_prefix}-linux"
           copy_asset "$macos_dmg" "DiskTree-GUI-v${version_no_prefix}-macos.dmg"
+          copy_asset "$macos_tree_binary" "Tree-v${version_no_prefix}-macos"
           copy_asset "$windows_msi" "DiskTree-GUI-v${version_no_prefix}-windows.msi"
           copy_asset "$windows_exe" "DiskTree-GUI-v${version_no_prefix}-windows.exe"
           copy_asset "$windows_zip" "DiskTree-GUI-v${version_no_prefix}-windows.zip"
+          copy_asset "$windows_tree_binary" "Tree-v${version_no_prefix}-windows.exe"
 
           if [ -z "$(find release-assets -maxdepth 1 -type f -print -quit)" ]; then
             echo "No release assets were collected."
