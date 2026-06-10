@@ -1,20 +1,13 @@
 package io.github.disktreegui
 
-import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import java.io.File
-import javax.imageio.ImageIO
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
 
 fun main() = application {
-    val icon = runCatching {
-        ImageIO.read(Thread.currentThread().contextClassLoader.getResourceAsStream("app_icon.png"))
-            ?.toComposeImageBitmap()
-    }.getOrNull()
-
-    Window(onCloseRequest = ::exitApplication, title = "DiskTree GUI", icon = icon) {
+    Window(onCloseRequest = ::exitApplication, title = "DiskTree GUI") {
         DiskTreeApp(
             filePickerLauncher = FilePickerLauncher { onLoaded, onError ->
                 val chooser = JFileChooser().apply {
