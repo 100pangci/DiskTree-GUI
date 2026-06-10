@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  build-android-and-shared:
+  build-android:
     runs-on: ubuntu-latest
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -34,11 +34,12 @@ jobs:
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > $RUNNER_TEMP/android-release.jks
 
-      - name: Make build script executable
-        run: chmod +x ./build-release.sh
+      - name: Build Android debug
+        run: ./gradlew :composeApp:assembleDebug --no-daemon
 
-      - name: Build Android + shared modules
-        run: ./build-release.sh
+      - name: Build Android release
+        if: ${{ github.event_name != 'pull_request' && env.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: ./gradlew :composeApp:assembleRelease --no-daemon
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/android-release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ env.ANDROID_KEYSTORE_PASSWORD }}
@@ -49,8 +50,35 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: releases-android-linux
-          path: Releases/
+          name: releases-android
+          path: composeApp/build/outputs/apk/
+
+  build-desktop-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10
+
+      - name: Build Linux desktop package
+        run: ./gradlew :composeApp:packageDistributionForCurrentOS --no-daemon
+
+      - name: Upload Linux Desktop artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: releases-linux
+          path: composeApp/build/compose/binaries/
 
   build-desktop-macos:
     runs-on: macos-latest
