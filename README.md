@@ -63,7 +63,7 @@ build-release.*      # 仅构建 GUI 发布产物的脚本
 - `windows-latest`：构建 Windows Desktop 发行产物
 - 另有独立的 Tree 构建任务：分别在 Linux / macOS / Windows 上单独拉取并打包 `Tree.py`
 
-手动触发（`workflow_dispatch`）时，`version` 输入现在可以留空；如果不填写，默认使用 `v1.0.0` 作为版本号。
+手动触发（`workflow_dispatch`）时，`version` 输入为必填，必须显式填写版本号（例如 `v1.0.1`）。
 
 另外，手动触发只会执行各平台构建并上传 **Artifacts**，不会创建 GitHub Release，也不会向 **Releases** 页面上传文件。只有 `v*` tag push 时才会创建正式 Release。
 
