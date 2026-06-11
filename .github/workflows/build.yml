@@ -289,7 +289,6 @@ jobs:
           macos_dmg="$(find_first_match "artifacts/releases-macos-${{ env.DISKTREE_VERSION }}" -name '*.dmg')"
           macos_tree_binary="$(find_first_match "artifacts/releases-tree-macos-${{ env.DISKTREE_VERSION }}" -name 'Tree')"
           windows_msi="$(find_first_match "artifacts/releases-windows-portable-${{ env.DISKTREE_VERSION }}" -name '*.msi')"
-          windows_exe="$(find_first_match "artifacts/releases-windows-portable-${{ env.DISKTREE_VERSION }}" -name '*.exe')"
           windows_zip="$(find_first_match "artifacts/releases-windows-portable-${{ env.DISKTREE_VERSION }}" -name '*.zip')"
           windows_tree_binary="$(find_first_match "artifacts/releases-tree-windows-${{ env.DISKTREE_VERSION }}" -name 'Tree.exe')"
 
@@ -303,7 +302,6 @@ jobs:
           copy_asset "$macos_dmg" "DiskTree-GUI-v${version_no_prefix}-macos.dmg"
           copy_asset "$macos_tree_binary" "Tree-v${version_no_prefix}-macos"
           copy_asset "$windows_msi" "DiskTree-GUI-v${version_no_prefix}-windows.msi"
-          copy_asset "$windows_exe" "DiskTree-GUI-v${version_no_prefix}-windows.exe"
           copy_asset "$windows_zip" "DiskTree-GUI-v${version_no_prefix}-windows.zip"
           copy_asset "$windows_tree_binary" "Tree-v${version_no_prefix}-windows.exe"
 
